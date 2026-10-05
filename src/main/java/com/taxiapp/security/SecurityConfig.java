@@ -51,7 +51,7 @@ public class SecurityConfig {
 							.requestMatchers("/api/auth/google", "/api/auth/demo", "/api/auth/demo/**").permitAll()
 							.requestMatchers(HttpMethod.POST, "/api/usuarios").permitAll()
 							.requestMatchers("/ws", "/ws/**").permitAll()
-							.requestMatchers("/", "/index.html", "/error").permitAll();
+							.requestMatchers("/", "/health", "/index.html", "/error").permitAll();
 					if (betaOpen) {
 						auth.requestMatchers("/api/**").permitAll();
 					}
