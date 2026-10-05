@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Prueba WebSocket - Ubicacion en vivo</title>
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
+<style>
+  body { font-family: sans-serif; max-width: 600px; margin: 40px auto; }
+  input, button { padding: 8px; margin: 4px 0; width: 100%; box-sizing: border-box; }
+  #log { background: #111; color: #0f0; padding: 12px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+</style>
+</head>
+<body>
+  <h2>Prueba de WebSocket - Ubicacion en tiempo real</h2>
+
+  <label>URL del backend (sin /ws al final):</label>
+  <input id="backendUrl" value="http://localhost:8080">
+
+  <label>ID del viaje a probar:</label>
+  <input id="viajeId" value="1">
+
+  <button onclick="conectar()">Conectar y Suscribirse (como Rider)</button>
+
+  <hr>
+
+  <label>Latitud a enviar (como Conductor):</label>
+  <input id="lat" value="-12.0464">
+  <label>Longitud a enviar (como Conductor):</label>
+  <input id="lng" value="-77.0428">
+  <button onclick="enviarUbicacion()">Enviar ubicacion (simular Conductor)</button>
+
+  <h3>Log:</h3>
+  <div id="log"></div>
+
+<script>
+let stompClient = null;
+
+function log(msg) {
+  const el = document.getElementById('log');
+  el.innerHTML += new Date().toLocaleTimeString() + ' - ' + msg + '<br>';
+  el.scrollTop = el.scrollHeight;
+}
+
+function conectar() {
+  const backendUrl = document.getElementById('backendUrl').value;
+  const viajeId = document.getElementById('viajeId').value;
+
+  const socket = new SockJS(backendUrl + '/ws');
+  stompClient = new StompJs.Client({
+    webSocketFactory: () => socket,
+    onConnect: () => {
+      log('Conectado al WebSocket');
+      stompClient.subscribe('/topic/viajes/' + viajeId + '/ubicacion', (mensaje) => {
+        const datos = JSON.parse(mensaje.body);
+        log('UBICACION RECIBIDA -> lat: ' + datos.lat + ', lng: ' + datos.lng + ' (a las ' + datos.timestamp + ')');
+      });
+      log('Suscrito a /topic/viajes/' + viajeId + '/ubicacion');
+    },
+    onStompError: (frame) => {
+      log('Error STOMP: ' + frame.headers['message']);
+    }
+  });
+
+  stompClient.activate();
+}
+
+function enviarUbicacion() {
+  if (!stompClient || !stompClient.connected) {
+    log('Primero conectate (dale clic a Conectar)');
+    return;
+  }
+  const viajeId = document.getElementById('viajeId').value;
+  const lat = document.getElementById('lat').value;
+  const lng = document.getElementById('lng').value;
+
+  stompClient.publish({
+    destination: '/app/viajes/' + viajeId + '/ubicacion',
+    body: JSON.stringify({ lat: lat, lng: lng })
+  });
+
+  log('Ubicacion enviada: lat=' + lat + ', lng=' + lng);
+}
+</script>
+</body>
+</html>
