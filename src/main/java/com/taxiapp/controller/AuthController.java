@@ -88,6 +88,7 @@ public class AuthController {
 
 	// POST http://localhost:8080/api/auth/google
     // body: { "idToken": "...", "rol": "RIDER" }
+	// Login por celular (Firebase Phone). Railway debe desplegar este endpoint.
 	@PostMapping("/firebase/check")
 	public ResponseEntity<?> consultarFirebase(@RequestBody FirebaseLoginRequestDTO request) {
 		try {
