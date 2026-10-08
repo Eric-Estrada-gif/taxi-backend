@@ -15,9 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.taxiapp.dto.AuthResponseDTO;
 import com.taxiapp.dto.DemoLoginRequestDTO;
+import com.taxiapp.dto.FirebaseLoginRequestDTO;
 import com.taxiapp.dto.GoogleLoginRequestDTO;
 import com.taxiapp.entity.Usuario;
 import com.taxiapp.service.DemoAccountService;
+import com.taxiapp.service.FirebaseAuthService;
 import com.taxiapp.service.GoogleAuthService;
 import com.taxiapp.service.JwtService;
 import com.taxiapp.service.UsuarioService;
@@ -29,14 +31,16 @@ import io.jsonwebtoken.JwtException;
 public class AuthController {
 
 	private final GoogleAuthService googleAuthService;
+	private final FirebaseAuthService firebaseAuthService;
 	private final JwtService jwtService;
 	private final DemoAccountService demoAccountService;
 	private final UsuarioService usuarioService;
 
 	@Autowired
-	public AuthController(GoogleAuthService googleAuthService, JwtService jwtService,
-			DemoAccountService demoAccountService, UsuarioService usuarioService) {
+	public AuthController(GoogleAuthService googleAuthService, FirebaseAuthService firebaseAuthService,
+			JwtService jwtService, DemoAccountService demoAccountService, UsuarioService usuarioService) {
 		this.googleAuthService = googleAuthService;
+		this.firebaseAuthService = firebaseAuthService;
 		this.jwtService = jwtService;
 		this.demoAccountService = demoAccountService;
 		this.usuarioService = usuarioService;
@@ -84,6 +88,31 @@ public class AuthController {
 
 	// POST http://localhost:8080/api/auth/google
     // body: { "idToken": "...", "rol": "RIDER" }
+	@PostMapping("/firebase/check")
+	public ResponseEntity<?> consultarFirebase(@RequestBody FirebaseLoginRequestDTO request) {
+		try {
+			return ResponseEntity.ok(firebaseAuthService.consultarCuenta(request.getIdToken()));
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+					.body(Map.of("error", "No se pudo verificar el celular: " + e.getMessage()));
+		}
+	}
+
+	@PostMapping("/firebase")
+	public ResponseEntity<?> loginConFirebase(@RequestBody FirebaseLoginRequestDTO request) {
+		try {
+			AuthResponseDTO respuesta = firebaseAuthService.loginConFirebase(request);
+			return ResponseEntity.ok(respuesta);
+		} catch (FirebaseAuthService.RolConflictException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+		} catch (FirebaseAuthService.PerfilRequeridoException e) {
+			return ResponseEntity.status(HttpStatus.PRECONDITION_REQUIRED).body(Map.of("error", e.getMessage()));
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+					.body(Map.of("error", "No se pudo autenticar el celular: " + e.getMessage()));
+		}
+	}
+
 	@PostMapping("/google")
 	public ResponseEntity<?> loginConGoogle(@RequestBody GoogleLoginRequestDTO request) {
 		try {

@@ -48,7 +48,9 @@ public class SecurityConfig {
 						}))
 				.authorizeHttpRequests(auth -> {
 					auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-							.requestMatchers("/api/auth/google", "/api/auth/demo", "/api/auth/demo/**").permitAll()
+							.requestMatchers("/api/auth/google", "/api/auth/firebase", "/api/auth/firebase/**",
+									"/api/auth/demo", "/api/auth/demo/**")
+							.permitAll()
 							.requestMatchers(HttpMethod.POST, "/api/usuarios").permitAll()
 							.requestMatchers("/ws", "/ws/**").permitAll()
 							.requestMatchers("/", "/health", "/index.html", "/error").permitAll();
