@@ -21,6 +21,7 @@ public class ViajeHistorialDTO {
     private String conductorNombre;
     private String conductorDetalleAuto; // Ej: "Gris Suzuki Swift, APX011"
     private int calificacionEstrellas;
+    private String comentarioCalificacion;
     private String metodoPago;   // EFECTIVO, TARJETA, BILLETERA_DIGITAL, VIP
 
     /** Usuario rider del viaje. El conductor lo necesita en el detalle. */

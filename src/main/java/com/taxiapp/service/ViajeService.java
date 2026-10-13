@@ -374,14 +374,7 @@ public class ViajeService {
 				dto.setMetodoPago(null);
 			}
 
-			try {
-				Integer puntaje = jdbcTemplate.queryForObject(
-						"SELECT puntaje FROM calificacion WHERE viaje_id = ? AND usuario_id = ? ORDER BY id DESC LIMIT 1",
-						Integer.class, dto.getId(), riderId);
-				dto.setCalificacionEstrellas(puntaje != null ? puntaje : 0);
-			} catch (EmptyResultDataAccessException e) {
-				dto.setCalificacionEstrellas(0);
-			}
+			aplicarCalificacion(dto);
 
 			return dto;
 		}, riderId);
@@ -470,17 +463,30 @@ public class ViajeService {
 				dto.setMetodoPago(null);
 			}
 
-			try {
-				Integer puntaje = jdbcTemplate.queryForObject(
-						"SELECT puntaje FROM calificacion WHERE viaje_id = ? AND usuario_id = ? ORDER BY id DESC LIMIT 1",
-						Integer.class, dto.getId(), rs.getLong("rider_id"));
-				dto.setCalificacionEstrellas(puntaje != null ? puntaje : 0);
-			} catch (EmptyResultDataAccessException e) {
-				dto.setCalificacionEstrellas(0);
-			}
+			aplicarCalificacion(dto);
 
 			return dto;
 		}, conductorId);
+	}
+
+	private void aplicarCalificacion(ViajeHistorialDTO dto) {
+		try {
+			jdbcTemplate.query(
+					"SELECT puntaje, comentario FROM calificacion WHERE viaje_id = ? ORDER BY id DESC LIMIT 1",
+					rs -> {
+						if (rs.next()) {
+							dto.setCalificacionEstrellas(rs.getInt("puntaje"));
+							String comentario = rs.getString("comentario");
+							dto.setComentarioCalificacion(comentario != null && !comentario.isBlank() ? comentario.trim() : null);
+						} else {
+							dto.setCalificacionEstrellas(0);
+						}
+						return null;
+					},
+					dto.getId());
+		} catch (Exception e) {
+			dto.setCalificacionEstrellas(0);
+		}
 	}
 
 	private String nombreCompleto(Usuario usuario) {
