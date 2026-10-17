@@ -134,7 +134,9 @@ public class FirebaseAuthService {
 				token,
 				usuario.getId(),
 				usuario.getNombre(),
+				usuario.getApellido(),
 				usuario.getEmail(),
+				usuario.getTelefono(),
 				usuario.getRol().name(),
 				usuario.getFotoPerfil(),
 				conductorId);

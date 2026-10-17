@@ -96,7 +96,9 @@ public class GoogleAuthService {
                 token,
                 usuario.getId(),
                 usuario.getNombre(),
+                usuario.getApellido(),
                 usuario.getEmail(),
+                usuario.getTelefono(),
                 usuario.getRol().name(),
                 usuario.getFotoPerfil(),
                 conductorId

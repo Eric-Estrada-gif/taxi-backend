@@ -207,12 +207,14 @@ public class ViajeController {
 		}
 
 		String estadoNotificado = viajeService.rechazar(id, conductor.getId());
-		notificarCambioEstado(id, estadoNotificado, conductor.getId());
-		simpMessagingTemplate.convertAndSend((String) "/topic/viajes/solicitados",
-				(Object) Map.of(
-						"viajeId", id,
-						"estado", estadoNotificado,
-						"conductorId", conductor.getId()));
+		if ("CANCELADO".equals(estadoNotificado)) {
+			notificarCambioEstado(id, estadoNotificado, conductor.getId());
+			simpMessagingTemplate.convertAndSend((String) "/topic/viajes/solicitados",
+					(Object) Map.of(
+							"viajeId", id,
+							"estado", estadoNotificado,
+							"conductorId", conductor.getId()));
+		}
 		return ResponseEntity.ok(Map.of(
 				"mensaje", "Viaje rechazado correctamente",
 				"estado", estadoNotificado,

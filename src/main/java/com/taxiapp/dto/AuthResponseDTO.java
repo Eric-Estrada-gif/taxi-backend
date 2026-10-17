@@ -14,7 +14,9 @@ public class AuthResponseDTO {
 	private String token;
 	private Long usuarioId;
 	private String nombre;
+	private String apellido;
 	private String email;
+	private String telefono;
 	private String rol;
 	private String fotoPerfil;
 	private Long conductorId;

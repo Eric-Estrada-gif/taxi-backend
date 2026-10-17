@@ -83,7 +83,7 @@ public class ViajeService {
 	public List<Viaje> listarSolicitados() {
 		String sql = "CALL sp_viaje_listar_solicitados()";
 
-		return jdbcTemplate.query(sql, (rs, rowNum) -> {
+		List<Viaje> lista = jdbcTemplate.query(sql, (rs, rowNum) -> {
 			Viaje viaje = new Viaje();
 			viaje.setId(rs.getLong("id"));
 
@@ -106,6 +106,17 @@ public class ViajeService {
 
 			return viaje;
 		});
+		lista.forEach(viaje -> {
+			try {
+				Long riderId = jdbcTemplate.queryForObject(
+						"SELECT rider_id FROM viaje WHERE id = ?", Long.class, viaje.getId());
+				if (riderId != null) {
+					viaje.setRider(usuarioService.buscarPorId(riderId));
+				}
+			} catch (Exception ignored) {
+			}
+		});
+		return lista;
 	}
 
 	public void aceptar(Long viajeId, Long conductorId) {

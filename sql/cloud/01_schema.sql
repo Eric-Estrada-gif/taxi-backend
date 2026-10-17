@@ -1,12 +1,5 @@
--- RapiTrip / taxi_app — esquema para nube (MySQL 8)
--- Idempotente en tablas nuevas. Ejecutar UNA vez en una base vacía.
--- Luego 02_procedures.sql y 03_seed.sql
-
-CREATE DATABASE IF NOT EXISTS taxi_app
-    CHARACTER SET utf8mb4
-    COLLATE utf8mb4_unicode_ci;
-
-USE taxi_app;
+-- Esquema RapiTrip. Corre en la base actual (Railway ya elige la suya).
+-- No uses CREATE DATABASE ni USE.
 
 CREATE TABLE IF NOT EXISTS usuario (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,

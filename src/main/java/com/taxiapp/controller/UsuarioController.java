@@ -6,8 +6,10 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -44,7 +46,27 @@ public class UsuarioController {
 		return ResponseEntity.ok(Map.of("id", id, "mensaje", "Usuario registrado correctamente"));
 	}
 	
-	//GET http://localhost:8080/api/usuarios/1
+	@PatchMapping("/{id}")
+	@PutMapping("/{id}")
+	@PostMapping("/{id}/perfil")
+	public ResponseEntity<Usuario> actualizarPerfil(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+		currentUserService.requireUserId(id);
+		String nombre = body.get("nombre") != null ? body.get("nombre").toString() : null;
+		String apellido = body.get("apellido") != null ? body.get("apellido").toString() : null;
+		String email = body.get("email") != null ? body.get("email").toString() : null;
+		String telefono = body.get("telefono") != null ? body.get("telefono").toString() : null;
+		String fotoPerfil = body.get("fotoPerfil") != null ? body.get("fotoPerfil").toString() : null;
+		String sexo = body.get("sexo") != null ? body.get("sexo").toString() : null;
+		String fechaNacimiento = body.get("fechaNacimiento") != null ? body.get("fechaNacimiento").toString() : null;
+		Usuario usuario = usuarioService.actualizarPerfil(id, nombre, apellido, email, telefono, fotoPerfil, sexo,
+				fechaNacimiento);
+		if (usuario == null) {
+			return ResponseEntity.notFound().build();
+		}
+		usuario.setPassword(null);
+		return ResponseEntity.ok(usuario);
+	}
+
 	@GetMapping("/{id}")
 	public ResponseEntity<Usuario> buscarPorId(@PathVariable Long id) {
 		currentUserService.requireUserId(id);

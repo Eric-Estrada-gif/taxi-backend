@@ -67,4 +67,51 @@ public class UsuarioService {
 	public List<Usuario> listarPorRol(String rol) {
 		return usuarioRepository.listarPorRol(rol);
 	}
+
+	@Transactional
+	public Usuario actualizarPerfil(Long id, String nombre, String apellido, String email, String telefono,
+			String fotoPerfil) {
+		Usuario usuario = buscarPorId(id);
+		if (usuario == null) {
+			return null;
+		}
+		if (nombre != null && !nombre.isBlank()) {
+			jdbcTemplate.update("UPDATE usuario SET nombre = ? WHERE id = ?", nombre.trim(), id);
+		}
+		if (apellido != null && !apellido.isBlank()) {
+			jdbcTemplate.update("UPDATE usuario SET apellido = ? WHERE id = ?", apellido.trim(), id);
+		}
+		if (email != null && !email.isBlank()) {
+			jdbcTemplate.update("UPDATE usuario SET email = ? WHERE id = ?", email.trim(), id);
+		}
+		if (telefono != null) {
+			String cel = telefono.trim();
+			jdbcTemplate.update("UPDATE usuario SET telefono = ? WHERE id = ?",
+					cel.isEmpty() ? null : cel, id);
+		}
+		if (fotoPerfil != null && !fotoPerfil.isBlank()) {
+			jdbcTemplate.update("UPDATE usuario SET foto_perfil = ? WHERE id = ?", fotoPerfil.trim(), id);
+		}
+		return buscarPorId(id);
+	}
+
+	@Transactional
+	public Usuario actualizarPerfil(Long id, String nombre, String apellido, String email, String telefono,
+			String fotoPerfil, String sexo, String fechaNacimiento) {
+		Usuario usuario = actualizarPerfil(id, nombre, apellido, email, telefono, fotoPerfil);
+		if (usuario == null) {
+			return null;
+		}
+		try {
+			if (sexo != null) {
+				jdbcTemplate.update("UPDATE usuario SET sexo = ? WHERE id = ?", sexo.trim(), id);
+			}
+			if (fechaNacimiento != null) {
+				jdbcTemplate.update("UPDATE usuario SET fecha_nacimiento = ? WHERE id = ?",
+						fechaNacimiento.trim(), id);
+			}
+		} catch (Exception ignored) {
+		}
+		return buscarPorId(id);
+	}
 }

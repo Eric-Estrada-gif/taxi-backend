@@ -2,6 +2,7 @@ package com.taxiapp.entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.Column;
@@ -36,6 +37,17 @@ public class Viaje {
 	@JoinColumn(name = "rider_id", nullable = false)
 	@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "viajes", "password"})
 	private Usuario rider;
+
+	@JsonGetter("riderNombre")
+	public String riderNombreParaJson() {
+		if (rider == null) {
+			return null;
+		}
+		String nombre = rider.getNombre() != null ? rider.getNombre().trim() : "";
+		String apellido = rider.getApellido() != null ? rider.getApellido().trim() : "";
+		String completo = (nombre + " " + apellido).trim();
+		return completo.isEmpty() ? null : completo;
+	}
 	
 	@ManyToOne
 	@JoinColumn(name = "conductor_id")

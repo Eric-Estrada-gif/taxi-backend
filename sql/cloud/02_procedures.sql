@@ -1,4 +1,4 @@
-USE taxi_app;
+-- Stored procedures. Corre en la base actual (sin USE).
 
 DROP PROCEDURE IF EXISTS sp_usuario_insertar;
 DROP PROCEDURE IF EXISTS sp_usuario_insertar_google;
