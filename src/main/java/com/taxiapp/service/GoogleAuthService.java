@@ -62,6 +62,7 @@ public class GoogleAuthService {
         String fotoPerfil = (String) payload.get("picture");
  
         Usuario usuario = null;
+        boolean cuentaNueva = false;
 
         try {
             // Intenta buscar el usuario en la base de datos
@@ -81,8 +82,9 @@ public class GoogleAuthService {
             }
         } else {
             // Cuenta nueva: se crea automáticamente en MySQL
-            Long nuevoId = registrarUsuarioGoogle(nombre, apellido, email, googleId, fotoPerfil, request.getRol());
+            registrarUsuarioGoogle(nombre, apellido, email, googleId, fotoPerfil, request.getRol());
             usuario = usuarioRepository.buscarPorGoogleId(googleId);
+            cuentaNueva = true;
         }
  
         String token = jwtService.generarToken(usuario.getId(), usuario.getEmail(), usuario.getRol().name());
@@ -101,7 +103,8 @@ public class GoogleAuthService {
                 usuario.getTelefono(),
                 usuario.getRol().name(),
                 usuario.getFotoPerfil(),
-                conductorId
+                conductorId,
+                cuentaNueva
         );
     }
  

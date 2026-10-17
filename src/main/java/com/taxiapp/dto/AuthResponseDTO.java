@@ -20,4 +20,5 @@ public class AuthResponseDTO {
 	private String rol;
 	private String fotoPerfil;
 	private Long conductorId;
+	private Boolean cuentaNueva;
 }

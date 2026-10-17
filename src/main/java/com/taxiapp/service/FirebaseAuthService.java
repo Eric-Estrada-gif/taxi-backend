@@ -139,7 +139,8 @@ public class FirebaseAuthService {
 				usuario.getTelefono(),
 				usuario.getRol().name(),
 				usuario.getFotoPerfil(),
-				conductorId);
+				conductorId,
+				false);
 	}
 
 	private Claims verificarIdToken(String idToken) {
