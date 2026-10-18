@@ -27,6 +27,8 @@ public class ViajeHistorialDTO {
     /** Usuario rider del viaje. El conductor lo necesita en el detalle. */
     private Long riderId;
     private String riderNombre;
+    private String riderFoto;
+    private String conductorFoto;
     private Double origenLat;
     private Double origenLng;
     private Double destinoLat;

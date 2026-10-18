@@ -1,7 +1,10 @@
 package com.taxiapp.service;
 
 import java.sql.CallableStatement;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -203,6 +206,10 @@ public class ViajeService {
 			if (nombreRider != null) {
 				detalle.put("riderNombre", nombreRider);
 			}
+			if (rider != null && rider.getFotoPerfil() != null && !rider.getFotoPerfil().isBlank()) {
+				detalle.put("riderFoto", rider.getFotoPerfil());
+				detalle.put("fotoPasajero", rider.getFotoPerfil());
+			}
 		}
 		Long conductorId = (Long) detalle.get("conductorId");
 		String estado = (String) detalle.get("estado");
@@ -310,7 +317,18 @@ public class ViajeService {
 		if (usuario != null) {
 			String apellido = usuario.getApellido() != null ? usuario.getApellido() : "";
 			payload.put("nombreConductor", (usuario.getNombre() + " " + apellido).trim());
-			payload.put("fotoPerfil", usuario.getFotoPerfil());
+			String foto = usuario.getFotoPerfil();
+			if ((foto == null || foto.isBlank()) && usuario.getId() != null) {
+				try {
+					foto = jdbcTemplate.queryForObject(
+							"SELECT foto_perfil FROM usuario WHERE id = ?",
+							String.class,
+							usuario.getId());
+				} catch (Exception ignored) {
+				}
+			}
+			payload.put("fotoPerfil", foto);
+			payload.put("conductorFoto", foto);
 		}
 
 		Vehiculo vehiculo = conductor.getVehiculo();
@@ -345,15 +363,8 @@ public class ViajeService {
 			dto.setEstado(rs.getString("estado"));
 			dto.setCostoTotal(rs.getBigDecimal("monto_total") != null ? rs.getBigDecimal("monto_total").doubleValue() : 0.0);
 
-			dto.setFecha(rs.getTimestamp("fecha_solicitud") != null
-					? rs.getTimestamp("fecha_solicitud").toLocalDateTime().toLocalDate().toString()
-					: "N/A");
-			dto.setHoraInicio(rs.getTimestamp("fecha_inicio") != null
-					? rs.getTimestamp("fecha_inicio").toLocalDateTime().toLocalTime().toString()
-					: "--:--");
-			dto.setHoraFin(rs.getTimestamp("fecha_fin") != null
-					? rs.getTimestamp("fecha_fin").toLocalDateTime().toLocalTime().toString()
-					: "--:--");
+			aplicarFechasLima(dto, rs.getTimestamp("fecha_solicitud"), rs.getTimestamp("fecha_inicio"),
+					rs.getTimestamp("fecha_fin"));
 			dto.setCategoria("City ride");
 
 			String nombreConductor = rs.getString("c_nombre");
@@ -386,6 +397,7 @@ public class ViajeService {
 			}
 
 			aplicarCalificacion(dto);
+			aplicarFotosHistorial(dto, riderId);
 
 			return dto;
 		}, riderId);
@@ -415,6 +427,8 @@ public class ViajeService {
 				       ru.apellido AS rider_apellido,
 				       cu.nombre AS cond_nombre,
 				       cu.apellido AS cond_apellido,
+				       ru.foto_perfil AS rider_foto,
+				       cu.foto_perfil AS cond_foto,
 				       veh.color AS v_color,
 				       veh.marca AS v_marca,
 				       veh.modelo AS v_modelo,
@@ -437,15 +451,8 @@ public class ViajeService {
 			dto.setEstado(rs.getString("estado"));
 			dto.setCostoTotal(rs.getBigDecimal("monto_total") != null ? rs.getBigDecimal("monto_total").doubleValue() : 0.0);
 
-			dto.setFecha(rs.getTimestamp("fecha_solicitud") != null
-					? rs.getTimestamp("fecha_solicitud").toLocalDateTime().toLocalDate().toString()
-					: "N/A");
-			dto.setHoraInicio(rs.getTimestamp("fecha_inicio") != null
-					? rs.getTimestamp("fecha_inicio").toLocalDateTime().toLocalTime().toString()
-					: "--:--");
-			dto.setHoraFin(rs.getTimestamp("fecha_fin") != null
-					? rs.getTimestamp("fecha_fin").toLocalDateTime().toLocalTime().toString()
-					: "--:--");
+			aplicarFechasLima(dto, rs.getTimestamp("fecha_solicitud"), rs.getTimestamp("fecha_inicio"),
+					rs.getTimestamp("fecha_fin"));
 			dto.setCategoria("City ride");
 			if (rs.getBigDecimal("origen_lat") != null) dto.setOrigenLat(rs.getBigDecimal("origen_lat").doubleValue());
 			if (rs.getBigDecimal("origen_lng") != null) dto.setOrigenLng(rs.getBigDecimal("origen_lng").doubleValue());
@@ -455,6 +462,8 @@ public class ViajeService {
 			dto.setRiderId(rs.getLong("rider_id"));
 			dto.setRiderNombre(unirNombre(rs.getString("rider_nombre"), rs.getString("rider_apellido")));
 			dto.setConductorNombre(unirNombre(rs.getString("cond_nombre"), rs.getString("cond_apellido")));
+			dto.setRiderFoto(rs.getString("rider_foto"));
+			dto.setConductorFoto(rs.getString("cond_foto"));
 
 			String color = rs.getString("v_color");
 			String marca = rs.getString("v_marca");
@@ -497,6 +506,52 @@ public class ViajeService {
 					dto.getId());
 		} catch (Exception e) {
 			dto.setCalificacionEstrellas(0);
+		}
+	}
+
+	private static final ZoneId ZONA_LIMA = ZoneId.of("America/Lima");
+
+	private void aplicarFechasLima(ViajeHistorialDTO dto, Timestamp solicitud, Timestamp inicio, Timestamp fin) {
+		Timestamp referencia = fin != null ? fin : (inicio != null ? inicio : solicitud);
+		dto.setFecha(fechaLima(referencia != null ? referencia : solicitud));
+		dto.setHoraInicio(horaLima(inicio != null ? inicio : solicitud));
+		dto.setHoraFin(horaLima(fin));
+	}
+
+	private String fechaLima(Timestamp ts) {
+		if (ts == null) {
+			return "N/A";
+		}
+		return ts.toInstant().atZone(ZONA_LIMA).toLocalDate().toString();
+	}
+
+	private String horaLima(Timestamp ts) {
+		if (ts == null) {
+			return "--:--";
+		}
+		return ts.toInstant().atZone(ZONA_LIMA).toLocalTime().truncatedTo(ChronoUnit.MINUTES).toString();
+	}
+
+	private void aplicarFotosHistorial(ViajeHistorialDTO dto, Long riderId) {
+		if (riderId != null) {
+			try {
+				dto.setRiderFoto(jdbcTemplate.queryForObject(
+						"SELECT foto_perfil FROM usuario WHERE id = ?", String.class, riderId));
+			} catch (Exception ignored) {
+			}
+		}
+		try {
+			dto.setConductorFoto(jdbcTemplate.queryForObject(
+					"""
+							SELECT u.foto_perfil
+							FROM viaje v
+							LEFT JOIN conductor c ON c.id = v.conductor_id
+							LEFT JOIN usuario u ON u.id = c.usuario_id
+							WHERE v.id = ?
+							""",
+					String.class,
+					dto.getId()));
+		} catch (Exception ignored) {
 		}
 	}
 

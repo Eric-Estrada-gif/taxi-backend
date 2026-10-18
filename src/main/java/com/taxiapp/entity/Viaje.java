@@ -48,6 +48,15 @@ public class Viaje {
 		String completo = (nombre + " " + apellido).trim();
 		return completo.isEmpty() ? null : completo;
 	}
+
+	@JsonGetter("riderFoto")
+	public String riderFotoParaJson() {
+		if (rider == null) {
+			return null;
+		}
+		String foto = rider.getFotoPerfil();
+		return foto != null && !foto.isBlank() ? foto : null;
+	}
 	
 	@ManyToOne
 	@JoinColumn(name = "conductor_id")
