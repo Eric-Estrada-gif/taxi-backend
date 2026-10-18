@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin RapiTrip</title>
+  <link rel="stylesheet" th:href="@{/admin/css/admin.css}">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" th:replace="~{admin/menu :: menu('')}"> </aside>
+  <main class="contenido">
+    <div class="top">
+      <div>
+        <h1>Mantenimiento de tablas</h1>
+        <p class="muted">CRUD de la base MySQL. Los cambios llegan a la app móvil.</p>
+      </div>
+    </div>
+    <div th:if="${ok}" class="alerta ok" th:text="${ok}"></div>
+    <div th:if="${error}" class="alerta error" th:text="${error}"></div>
+    <div class="cards">
+      <a class="card" th:each="t : ${tablas}" th:href="@{|/admin/${t.clave}|}">
+        <span th:text="${t.titulo}">Tabla</span>
+        <strong th:text="${conteos.get(t.clave) >= 0 ? conteos.get(t.clave) : '—'}">0</strong>
+      </a>
+    </div>
+  </main>
+</div>
+</body>
+</html>

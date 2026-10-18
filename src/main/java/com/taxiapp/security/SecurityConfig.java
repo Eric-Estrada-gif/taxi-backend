@@ -5,12 +5,16 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -25,11 +29,40 @@ public class SecurityConfig {
 	@Value("${app.security.beta-open:true}")
 	private boolean betaOpen;
 
+	@Value("${admin.username:admin}")
+	private String adminUsername;
+
+	@Value("${admin.password:RapiTrip2026}")
+	private String adminPassword;
+
 	public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
 		this.jwtAuthenticationFilter = jwtAuthenticationFilter;
 	}
 
 	@Bean
+	@Order(1)
+	public SecurityFilterChain adminFilterChain(HttpSecurity http) throws Exception {
+		http
+				.securityMatcher("/admin/**")
+				.authorizeHttpRequests(auth -> auth
+						.requestMatchers("/admin/login", "/admin/css/**", "/admin/css/**/**").permitAll()
+						.anyRequest().authenticated())
+				.formLogin(form -> form
+						.loginPage("/admin/login")
+						.loginProcessingUrl("/admin/login")
+						.defaultSuccessUrl("/admin", true)
+						.failureUrl("/admin/login?error")
+						.permitAll())
+				.logout(logout -> logout
+						.logoutUrl("/admin/logout")
+						.logoutSuccessUrl("/admin/login?salida")
+						.permitAll())
+				.userDetailsService(adminUsers());
+		return http.build();
+	}
+
+	@Bean
+	@Order(2)
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http
 				.cors(Customizer.withDefaults())
@@ -67,6 +100,15 @@ public class SecurityConfig {
 	@Bean
 	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
+	}
+
+	@Bean
+	public UserDetailsService adminUsers() {
+		return new InMemoryUserDetailsManager(User.builder()
+				.username(adminUsername)
+				.password(passwordEncoder().encode(adminPassword))
+				.roles("ADMIN")
+				.build());
 	}
 
 	@Bean

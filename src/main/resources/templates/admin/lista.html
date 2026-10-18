@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${tabla.titulo}">Tabla</title>
+  <link rel="stylesheet" th:href="@{/admin/css/admin.css}">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" th:replace="~{admin/menu :: menu(${tabla.clave})}"></aside>
+  <main class="contenido">
+    <div class="top">
+      <div>
+        <h1 th:text="${tabla.titulo}">Tabla</h1>
+        <p class="muted" th:text="'Tabla MySQL: ' + ${tabla.sqlNombre}"></p>
+      </div>
+      <a class="btn" th:href="@{|/admin/${tabla.clave}/nuevo|}">Nuevo</a>
+    </div>
+    <div th:if="${ok}" class="alerta ok" th:text="${ok}"></div>
+    <div th:if="${error}" class="alerta error" th:text="${error}"></div>
+    <div class="tabla-wrap">
+      <table>
+        <thead>
+        <tr>
+          <th th:each="c : ${tabla.columnas}" th:if="${c.enLista}" th:text="${c.etiqueta}"></th>
+          <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${filas.empty}">
+          <td th:colspan="${tabla.columnas.size() + 1}" class="muted">Sin registros</td>
+        </tr>
+        <tr th:each="fila : ${filas}">
+          <td th:each="c : ${tabla.columnas}" th:if="${c.enLista}" th:text="${fila.get(c.nombre)}"></td>
+          <td>
+            <div class="acciones">
+              <a class="btn gris" th:href="@{|/admin/${tabla.clave}/${fila.get(tabla.pk)}/editar|}">Editar</a>
+              <form th:action="@{|/admin/${tabla.clave}/${fila.get(tabla.pk)}/eliminar|}" method="post"
+                    onsubmit="return confirm('¿Eliminar este registro?');">
+                <button class="btn rojo" type="submit">Borrar</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+</body>
+</html>

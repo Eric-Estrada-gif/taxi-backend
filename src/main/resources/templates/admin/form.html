@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${nuevo} ? 'Nuevo' : 'Editar'">Form</title>
+  <link rel="stylesheet" th:href="@{/admin/css/admin.css}">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" th:replace="~{admin/menu :: menu(${tabla.clave})}"></aside>
+  <main class="contenido">
+    <div class="top">
+      <div>
+        <h1 th:text="${nuevo} ? 'Nuevo registro' : 'Editar registro'"></h1>
+        <p class="muted" th:text="${tabla.titulo}"></p>
+      </div>
+      <a class="btn gris" th:href="@{|/admin/${tabla.clave}|}">Volver</a>
+    </div>
+    <div th:if="${error}" class="alerta error" th:text="${error}"></div>
+    <form class="form" th:action="@{|/admin/${tabla.clave}/guardar|}" method="post">
+      <input type="hidden" name="idActual" th:value="${idActual}">
+      <th:block th:each="c : ${tabla.columnas}">
+        <label th:text="${c.etiqueta}"></label>
+        <th:block th:switch="${c.tipoBase()}">
+          <input th:case="'password'" type="password" th:name="${c.nombre}" autocomplete="new-password"
+                 th:placeholder="${nuevo} ? '' : 'Vacío = no cambiar'">
+          <textarea th:case="'textarea'" th:name="${c.nombre}" rows="3" th:text="${fila.get(c.nombre)}"></textarea>
+          <select th:case="'select'" th:name="${c.nombre}">
+            <option value="">—</option>
+            <option th:each="op : ${crud.opciones(c)}" th:value="${op}" th:text="${op}"
+                    th:selected="${fila.get(c.nombre) != null and #strings.toString(fila.get(c.nombre)) == op}"></option>
+          </select>
+          <input th:case="'bool'" type="checkbox" th:name="${c.nombre}"
+                 th:checked="${fila.get(c.nombre) == true or #strings.toString(fila.get(c.nombre)) == '1' or #strings.toString(fila.get(c.nombre)) == 'true'}">
+          <input th:case="'date'" type="date" th:name="${c.nombre}" th:value="${fila.get(c.nombre)}" th:readonly="${!c.editable}">
+          <input th:case="'datetime'" type="text" th:name="${c.nombre}" th:value="${fila.get(c.nombre)}"
+                 placeholder="YYYY-MM-DD HH:MM:SS" th:readonly="${!c.editable}">
+          <input th:case="*" type="text" th:name="${c.nombre}" th:value="${fila.get(c.nombre)}"
+                 th:readonly="${!c.editable or (c.pk and tabla.pkAuto)}">
+        </th:block>
+      </th:block>
+      <p style="margin-top:18px">
+        <button class="btn" type="submit">Guardar</button>
+      </p>
+    </form>
+  </main>
+</div>
+</body>
+</html>

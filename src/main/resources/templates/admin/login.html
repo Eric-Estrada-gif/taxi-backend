@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RapiTrip Admin</title>
+  <link rel="stylesheet" th:href="@{/admin/css/admin.css}">
+</head>
+<body>
+  <div class="login-box">
+    <p class="brand">RapiTrip</p>
+    <p class="muted">Portal administrativo</p>
+    <div th:if="${param.error}" class="alerta error">Usuario o contraseña incorrectos</div>
+    <div th:if="${param.salida}" class="alerta ok">Sesión cerrada</div>
+    <form th:action="@{/admin/login}" method="post">
+      <label>Usuario</label>
+      <input type="text" name="username" autocomplete="username" required>
+      <label>Contraseña</label>
+      <input type="password" name="password" autocomplete="current-password" required>
+      <p style="margin-top:16px"><button class="btn" type="submit">Entrar</button></p>
+    </form>
+  </div>
+</body>
+</html>

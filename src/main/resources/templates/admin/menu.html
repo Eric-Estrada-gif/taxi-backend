@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<aside class="sidebar" th:fragment="menu(activa)">
+  <p class="brand">RapiTrip</p>
+  <p class="brand-sub">Portal admin</p>
+  <nav class="nav">
+    <a th:href="@{/admin}" th:classappend="${activa == ''} ? 'activo'">Inicio</a>
+    <a th:each="t : ${tablas}" th:href="@{|/admin/${t.clave}|}"
+       th:text="${t.titulo}"
+       th:classappend="${activa == t.clave} ? 'activo'"></a>
+  </nav>
+  <form th:action="@{/admin/logout}" method="post" style="margin-top:24px">
+    <button class="logout" type="submit">Cerrar sesión</button>
+  </form>
+</aside>
+</body>
+</html>
