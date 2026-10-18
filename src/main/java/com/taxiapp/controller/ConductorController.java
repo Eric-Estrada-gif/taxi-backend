@@ -25,10 +25,13 @@ public class ConductorController {
 
 	private final ConductorService conductorService;
 	private final CurrentUserService currentUserService;
+	private final com.taxiapp.service.CuentaPersistenteService cuentaPersistenteService;
 
-	public ConductorController(ConductorService conductorService, CurrentUserService currentUserService) {
+	public ConductorController(ConductorService conductorService, CurrentUserService currentUserService,
+			com.taxiapp.service.CuentaPersistenteService cuentaPersistenteService) {
 		this.conductorService = conductorService;
 		this.currentUserService = currentUserService;
+		this.cuentaPersistenteService = cuentaPersistenteService;
 	}
 
 	@PostMapping
@@ -62,6 +65,12 @@ public class ConductorController {
 			return ResponseEntity.notFound().build();
 		}
 		return ResponseEntity.ok(conductor);
+	}
+
+	@GetMapping("/usuario/{usuarioId}/vehiculo")
+	public ResponseEntity<Map<String, Object>> vehiculoPorUsuario(@PathVariable Long usuarioId) {
+		currentUserService.requireUserId(usuarioId);
+		return ResponseEntity.ok(cuentaPersistenteService.leerVehiculo(usuarioId));
 	}
 
 	@GetMapping("/estado/{estado}")

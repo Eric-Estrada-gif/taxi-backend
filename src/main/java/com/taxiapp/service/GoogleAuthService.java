@@ -31,13 +31,16 @@ public class GoogleAuthService {
 	private JdbcTemplate jdbcTemplate;
 	private final JwtService jwtService;
 	private final DemoAccountService demoAccountService;
+	private final CuentaPersistenteService cuentaPersistenteService;
 
 	@Autowired
 	public GoogleAuthService(UsuarioRepository usuarioRepository, JdbcTemplate jdbcTemplate,
-			JwtService jwtService, DemoAccountService demoAccountService) {
+			JwtService jwtService, DemoAccountService demoAccountService,
+			CuentaPersistenteService cuentaPersistenteService) {
 		this.usuarioRepository = usuarioRepository;
 		this.jdbcTemplate = jdbcTemplate;
 		this.jwtService = jwtService;
+		this.cuentaPersistenteService = cuentaPersistenteService;
 		this.demoAccountService = demoAccountService;
 	}
 	
@@ -94,7 +97,7 @@ public class GoogleAuthService {
             conductorId = demoAccountService.conductorIdDeUsuario(usuario.getId());
         }
 
-        return new AuthResponseDTO(
+        AuthResponseDTO dto = AuthResponseDTO.de(
                 token,
                 usuario.getId(),
                 usuario.getNombre(),
@@ -106,6 +109,8 @@ public class GoogleAuthService {
                 conductorId,
                 cuentaNueva
         );
+        cuentaPersistenteService.completar(dto);
+        return dto;
     }
  
     private GoogleIdToken.Payload verificarToken(String idTokenString) {

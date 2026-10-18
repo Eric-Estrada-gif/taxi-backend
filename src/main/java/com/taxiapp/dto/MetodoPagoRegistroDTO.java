@@ -8,7 +8,11 @@ import lombok.Setter;
 public class MetodoPagoRegistroDTO {
 
 	private Long usuarioId;
-	private String tipo; // TARJETA o BILLETERA_DIGITAL
+	private String tipo;
 	private String detalle;
 	private Boolean predeterminado;
+	private String numero;
+	private String vence;
+	private String cvv;
+	private String yape;
 }

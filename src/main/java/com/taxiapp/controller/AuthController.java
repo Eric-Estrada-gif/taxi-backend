@@ -22,6 +22,7 @@ import com.taxiapp.service.DemoAccountService;
 import com.taxiapp.service.FirebaseAuthService;
 import com.taxiapp.service.GoogleAuthService;
 import com.taxiapp.service.JwtService;
+import com.taxiapp.service.CuentaPersistenteService;
 import com.taxiapp.service.UsuarioService;
 
 import io.jsonwebtoken.JwtException;
@@ -35,15 +36,18 @@ public class AuthController {
 	private final JwtService jwtService;
 	private final DemoAccountService demoAccountService;
 	private final UsuarioService usuarioService;
+	private final CuentaPersistenteService cuentaPersistenteService;
 
 	@Autowired
 	public AuthController(GoogleAuthService googleAuthService, FirebaseAuthService firebaseAuthService,
-			JwtService jwtService, DemoAccountService demoAccountService, UsuarioService usuarioService) {
+			JwtService jwtService, DemoAccountService demoAccountService, UsuarioService usuarioService,
+			CuentaPersistenteService cuentaPersistenteService) {
 		this.googleAuthService = googleAuthService;
 		this.firebaseAuthService = firebaseAuthService;
 		this.jwtService = jwtService;
 		this.demoAccountService = demoAccountService;
 		this.usuarioService = usuarioService;
+		this.cuentaPersistenteService = cuentaPersistenteService;
 	}
 
 	@GetMapping("/demo")
@@ -79,6 +83,7 @@ public class AuthController {
 			respuesta.put("rol", usuario.getRol().name());
 			respuesta.put("fotoPerfil", usuario.getFotoPerfil());
 			respuesta.put("conductorId", conductorId);
+			cuentaPersistenteService.completarMapa(respuesta, usuario.getId());
 			return ResponseEntity.ok(respuesta);
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

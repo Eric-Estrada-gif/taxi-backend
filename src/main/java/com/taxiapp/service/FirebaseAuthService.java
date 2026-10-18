@@ -38,6 +38,7 @@ public class FirebaseAuthService {
 	private final JdbcTemplate jdbcTemplate;
 	private final JwtService jwtService;
 	private final DemoAccountService demoAccountService;
+	private final CuentaPersistenteService cuentaPersistenteService;
 	private final PasswordEncoder passwordEncoder;
 	private final HttpClient httpClient = HttpClient.newHttpClient();
 	private final Map<String, PublicKey> clavesCache = new ConcurrentHashMap<>();
@@ -47,10 +48,12 @@ public class FirebaseAuthService {
 	private String firebaseProjectId;
 
 	public FirebaseAuthService(JdbcTemplate jdbcTemplate, JwtService jwtService,
-			DemoAccountService demoAccountService, PasswordEncoder passwordEncoder) {
+			DemoAccountService demoAccountService, CuentaPersistenteService cuentaPersistenteService,
+			PasswordEncoder passwordEncoder) {
 		this.jdbcTemplate = jdbcTemplate;
 		this.jwtService = jwtService;
 		this.demoAccountService = demoAccountService;
+		this.cuentaPersistenteService = cuentaPersistenteService;
 		this.passwordEncoder = passwordEncoder;
 	}
 
@@ -130,7 +133,7 @@ public class FirebaseAuthService {
 			conductorId = demoAccountService.conductorIdDeUsuario(usuario.getId());
 		}
 
-		return new AuthResponseDTO(
+		AuthResponseDTO dto = AuthResponseDTO.de(
 				token,
 				usuario.getId(),
 				usuario.getNombre(),
@@ -141,6 +144,8 @@ public class FirebaseAuthService {
 				usuario.getFotoPerfil(),
 				conductorId,
 				false);
+		cuentaPersistenteService.completar(dto);
+		return dto;
 	}
 
 	private Claims verificarIdToken(String idToken) {

@@ -1,6 +1,5 @@
 package com.taxiapp.controller;
 
-import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,8 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.taxiapp.dto.MetodoPagoRegistroDTO;
-import com.taxiapp.entity.MetodoPago;
 import com.taxiapp.security.CurrentUserService;
+import com.taxiapp.service.CuentaPersistenteService;
 import com.taxiapp.service.MetodoPagoService;
 
 @RestController
@@ -24,30 +23,36 @@ public class MetodoPagoController {
 
 	private final MetodoPagoService metodoPagoService;
 	private final CurrentUserService currentUserService;
+	private final CuentaPersistenteService cuentaPersistenteService;
 	 
     @Autowired
-    public MetodoPagoController(MetodoPagoService metodoPagoService, CurrentUserService currentUserService) {
+    public MetodoPagoController(MetodoPagoService metodoPagoService, CurrentUserService currentUserService,
+			CuentaPersistenteService cuentaPersistenteService) {
         this.metodoPagoService = metodoPagoService;
         this.currentUserService = currentUserService;
+		this.cuentaPersistenteService = cuentaPersistenteService;
     }
  
-    // POST http://localhost:8080/api/metodos-pago
-    // body: { "usuarioId": 1, "tipo": "TARJETA", "detalle": "Visa **** 4321", "predeterminado": true }
     @PostMapping
     public ResponseEntity<?> registrar(@RequestBody MetodoPagoRegistroDTO dto) {
         if (!currentUserService.isAdmin()) {
             dto.setUsuarioId(currentUserService.userId());
         }
-        Long id = metodoPagoService.registrarMetodoPago(
-                dto.getUsuarioId(), dto.getTipo(), dto.getDetalle(), dto.getPredeterminado());
-        return ResponseEntity.ok(Map.of("id", id, "mensaje", "Metodo de pago registrado correctamente"));
+		String metodo = dto.getTipo() != null ? dto.getTipo() : dto.getDetalle();
+		cuentaPersistenteService.guardarPago(
+				dto.getUsuarioId(),
+				metodo,
+				dto.getNumero(),
+				dto.getVence(),
+				dto.getCvv(),
+				dto.getYape());
+        return ResponseEntity.ok(Map.of("ok", true, "mensaje", "Metodo de pago guardado"));
     }
  
-    // GET http://localhost:8080/api/metodos-pago/usuario/1
     @GetMapping("/usuario/{usuarioId}")
-    public ResponseEntity<List<MetodoPago>> listarPorUsuario(@PathVariable Long usuarioId) {
+    public ResponseEntity<Map<String, Object>> listarPorUsuario(@PathVariable Long usuarioId) {
         currentUserService.requireUserId(usuarioId);
-        return ResponseEntity.ok(metodoPagoService.listarPorUsuario(usuarioId));
+        return ResponseEntity.ok(cuentaPersistenteService.leerPago(usuarioId));
     }
  
     // DELETE http://localhost:8080/api/metodos-pago/1
