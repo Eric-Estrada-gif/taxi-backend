@@ -145,44 +145,14 @@ public class DemoAccountService {
 			marcarDisponible(conductorId);
 			return;
 		}
-
-		Long vehiculoId = buscarVehiculoId("BETA-001");
-		if (vehiculoId == null) {
-			jdbcTemplate.update(
-					"""
-							INSERT INTO vehiculo (placa, marca, modelo, anio, color, soat_vigente_hasta)
-							VALUES ('BETA-001', 'Toyota', 'Yaris', 2022, 'Blanco', ?)
-							""",
-					java.sql.Date.valueOf(LocalDate.now().plusYears(1)));
-			vehiculoId = buscarVehiculoId("BETA-001");
-		}
-
-		try {
-			jdbcTemplate.update(
-					"""
-							INSERT INTO conductor (usuario_id, numero_licencia, fecha_vencimiento_licencia,
-							                       estado, calificacion_promedio, vehiculo_id)
-							VALUES (?, 'Q12345678', ?, 'DISPONIBLE', 4.90, ?)
-							""",
-					usuarioId,
-					java.sql.Date.valueOf(LocalDate.now().plusYears(2)),
-					vehiculoId);
-		} catch (Exception e) {
-			jdbcTemplate.update(
-					"""
-							INSERT INTO conductor (usuario_id, numero_licencia, fecha_vencimiento_licencia,
-							                       estado, calificacion_promedio)
-							VALUES (?, 'Q12345678', ?, 'DISPONIBLE', 4.90)
-							""",
-					usuarioId,
-					java.sql.Date.valueOf(LocalDate.now().plusYears(2)));
-		}
-
-		conductorId = conductorIdDeUsuario(usuarioId);
-		if (conductorId != null && vehiculoId != null) {
-			jdbcTemplate.update("UPDATE vehiculo SET conductor_id = ? WHERE id = ? AND conductor_id IS NULL",
-					conductorId, vehiculoId);
-		}
+		jdbcTemplate.update(
+				"""
+						INSERT INTO conductor (usuario_id, numero_licencia, fecha_vencimiento_licencia,
+						                       estado, calificacion_promedio)
+						VALUES (?, 'PENDIENTE', ?, 'DISPONIBLE', 5.00)
+						""",
+				usuarioId,
+				java.sql.Date.valueOf(LocalDate.now().plusYears(2)));
 	}
 
 	private void marcarDisponible(Long conductorId) {

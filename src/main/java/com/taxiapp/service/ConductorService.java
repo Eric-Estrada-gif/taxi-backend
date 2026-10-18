@@ -104,4 +104,53 @@ public class ConductorService {
 	public void actualizarEstado(Long id, String estado) {
 		jdbcTemplate.update("CALL sp_conductor_actualizar_estado(?, ?)", id, estado);
 	}
+
+	@Transactional
+	public Long guardarVehiculoYLicencia(Long usuarioId, String numeroLicencia, String placa, String marca,
+			String modelo, Integer anio, String color) {
+		Conductor conductor = buscarPorUsuario(usuarioId);
+		if (conductor == null) {
+			registrarConductor(usuarioId, numeroLicencia, LocalDate.now().plusYears(2), null);
+			conductor = buscarPorUsuario(usuarioId);
+		}
+		if (conductor == null) {
+			return null;
+		}
+		Long conductorId = conductor.getId();
+		jdbcTemplate.update(
+				"UPDATE conductor SET numero_licencia = ?, fecha_vencimiento_licencia = ?, estado = 'DISPONIBLE' WHERE id = ?",
+				numeroLicencia,
+				Date.valueOf(LocalDate.now().plusYears(2)),
+				conductorId);
+
+		String placaFinal = placa == null ? "" : placa.trim().toUpperCase();
+		Long vehiculoId = null;
+		if (conductor.getVehiculo() != null && conductor.getVehiculo().getId() != null) {
+			vehiculoId = conductor.getVehiculo().getId();
+			jdbcTemplate.update(
+					"""
+							UPDATE vehiculo SET placa = ?, marca = ?, modelo = ?, anio = ?, color = ?, conductor_id = ?
+							WHERE id = ?
+							""",
+					placaFinal, marca, modelo, anio != null ? anio : 2022, color, conductorId, vehiculoId);
+		} else {
+			jdbcTemplate.update(
+					"""
+							INSERT INTO vehiculo (placa, marca, modelo, anio, color, soat_vigente_hasta, conductor_id)
+							VALUES (?, ?, ?, ?, ?, ?, ?)
+							""",
+					placaFinal, marca, modelo, anio != null ? anio : 2022, color,
+					Date.valueOf(LocalDate.now().plusYears(1)),
+					conductorId);
+			try {
+				vehiculoId = jdbcTemplate.queryForObject("SELECT id FROM vehiculo WHERE placa = ? LIMIT 1", Long.class,
+						placaFinal);
+			} catch (Exception ignored) {
+			}
+		}
+		if (vehiculoId != null) {
+			jdbcTemplate.update("UPDATE conductor SET vehiculo_id = ? WHERE id = ?", vehiculoId, conductorId);
+		}
+		return conductorId;
+	}
 }

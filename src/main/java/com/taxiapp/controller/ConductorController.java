@@ -70,6 +70,47 @@ public class ConductorController {
 		return ResponseEntity.ok(conductorService.listarPorEstado(estado));
 	}
 
+	@PostMapping("/vehiculo")
+	public ResponseEntity<?> guardarVehiculo(@RequestBody Map<String, Object> body) {
+		Long usuarioId = currentUserService.userId();
+		if ("beta@taxiapp.com".equalsIgnoreCase(currentUserService.require().getEmail())
+				&& body.get("usuarioId") != null) {
+			try {
+				usuarioId = Long.parseLong(body.get("usuarioId").toString());
+			} catch (NumberFormatException ignored) {
+			}
+		}
+		String licencia = texto(body, "licencia", "numeroLicencia");
+		String placa = texto(body, "placa");
+		String marca = texto(body, "marca");
+		String modelo = texto(body, "modelo");
+		String color = texto(body, "color");
+		Integer anio = null;
+		if (body.get("anio") instanceof Number n) {
+			anio = n.intValue();
+		} else if (body.get("anio") != null) {
+			try {
+				anio = Integer.parseInt(body.get("anio").toString());
+			} catch (NumberFormatException ignored) {
+			}
+		}
+		Long conductorId = conductorService.guardarVehiculoYLicencia(usuarioId, licencia, placa, marca, modelo, anio,
+				color);
+		if (conductorId == null) {
+			return ResponseEntity.badRequest().body(Map.of("error", "No se pudo guardar el vehículo"));
+		}
+		return ResponseEntity.ok(Map.of("ok", true, "conductorId", conductorId));
+	}
+
+	private String texto(Map<String, Object> body, String... claves) {
+		for (String clave : claves) {
+			if (body.get(clave) != null && !body.get(clave).toString().isBlank()) {
+				return body.get(clave).toString().trim();
+			}
+		}
+		return "";
+	}
+
 	@PatchMapping("/{id}/estado")
 	public ResponseEntity<?> actualizarEstado(@PathVariable Long id, @RequestBody Map<String, String> body) {
 		if (!currentUserService.isAdmin()) {
