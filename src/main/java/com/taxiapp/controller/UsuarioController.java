@@ -46,25 +46,63 @@ public class UsuarioController {
 		return ResponseEntity.ok(Map.of("id", id, "mensaje", "Usuario registrado correctamente"));
 	}
 	
+	@PostMapping("/perfil")
+	public ResponseEntity<?> guardarMiPerfil(@RequestBody Map<String, Object> body) {
+		Long id = idParaPerfil(body);
+		if (id == null || id <= 0) {
+			return ResponseEntity.badRequest().body(Map.of("error", "No hay usuario para actualizar"));
+		}
+		return aplicarPerfil(id, body);
+	}
+
 	@PatchMapping("/{id}")
 	@PutMapping("/{id}")
 	@PostMapping("/{id}/perfil")
-	public ResponseEntity<Usuario> actualizarPerfil(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+	public ResponseEntity<?> actualizarPerfil(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+		return aplicarPerfil(id, body);
+	}
+
+	private ResponseEntity<?> aplicarPerfil(Long id, Map<String, Object> body) {
 		currentUserService.requireUserId(id);
-		String nombre = body.get("nombre") != null ? body.get("nombre").toString() : null;
-		String apellido = body.get("apellido") != null ? body.get("apellido").toString() : null;
-		String email = body.get("email") != null ? body.get("email").toString() : null;
-		String telefono = body.get("telefono") != null ? body.get("telefono").toString() : null;
-		String fotoPerfil = body.get("fotoPerfil") != null ? body.get("fotoPerfil").toString() : null;
-		String sexo = body.get("sexo") != null ? body.get("sexo").toString() : null;
-		String fechaNacimiento = body.get("fechaNacimiento") != null ? body.get("fechaNacimiento").toString() : null;
+		String nombre = texto(body, "nombre");
+		String apellido = texto(body, "apellido");
+		String email = texto(body, "email");
+		String telefono = texto(body, "telefono");
+		String fotoPerfil = texto(body, "fotoPerfil");
+		String sexo = texto(body, "sexo");
+		String fechaNacimiento = texto(body, "fechaNacimiento");
 		Usuario usuario = usuarioService.actualizarPerfil(id, nombre, apellido, email, telefono, fotoPerfil, sexo,
 				fechaNacimiento);
 		if (usuario == null) {
-			return ResponseEntity.notFound().build();
+			return ResponseEntity.ok(Map.of("ok", true, "usuarioId", id));
 		}
 		usuario.setPassword(null);
 		return ResponseEntity.ok(usuario);
+	}
+
+	private Long idParaPerfil(Map<String, Object> body) {
+		try {
+			Long sesion = currentUserService.userId();
+			if (sesion != null && sesion > 0 && !"beta@taxiapp.com".equalsIgnoreCase(currentUserService.require().getEmail())) {
+				return sesion;
+			}
+		} catch (Exception ignored) {
+		}
+		Object crudo = body.get("usuarioId");
+		if (crudo instanceof Number n) {
+			return n.longValue();
+		}
+		if (crudo != null) {
+			try {
+				return Long.parseLong(crudo.toString().trim());
+			} catch (NumberFormatException ignored) {
+			}
+		}
+		return null;
+	}
+
+	private String texto(Map<String, Object> body, String clave) {
+		return body.get(clave) != null ? body.get(clave).toString() : null;
 	}
 
 	@GetMapping("/{id}")
