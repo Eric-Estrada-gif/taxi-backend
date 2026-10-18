@@ -11,7 +11,6 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
@@ -41,11 +40,16 @@ public class SecurityConfig {
 
 	@Bean
 	@Order(1)
-	public SecurityFilterChain adminFilterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain adminFilterChain(HttpSecurity http, PasswordEncoder encoder) throws Exception {
+		var admin = User.withUsername(adminUsername)
+				.password(encoder.encode(adminPassword))
+				.roles("ADMIN")
+				.build();
 		http
 				.securityMatcher("/admin/**")
+				.csrf(csrf -> csrf.disable())
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/admin/login", "/admin/css/**", "/admin/css/**/**").permitAll()
+						.requestMatchers("/admin/login", "/admin/css/**").permitAll()
 						.anyRequest().authenticated())
 				.formLogin(form -> form
 						.loginPage("/admin/login")
@@ -57,7 +61,7 @@ public class SecurityConfig {
 						.logoutUrl("/admin/logout")
 						.logoutSuccessUrl("/admin/login?salida")
 						.permitAll())
-				.userDetailsService(adminUsers());
+				.userDetailsService(new InMemoryUserDetailsManager(admin));
 		return http.build();
 	}
 
@@ -100,15 +104,6 @@ public class SecurityConfig {
 	@Bean
 	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
-	}
-
-	@Bean
-	public UserDetailsService adminUsers() {
-		return new InMemoryUserDetailsManager(User.builder()
-				.username(adminUsername)
-				.password(passwordEncoder().encode(adminPassword))
-				.roles("ADMIN")
-				.build());
 	}
 
 	@Bean
