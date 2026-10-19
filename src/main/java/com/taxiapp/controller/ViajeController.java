@@ -144,6 +144,25 @@ public class ViajeController {
 		return ResponseEntity.ok(viajeService.listarSolicitados());
 	}
 
+	@PostMapping("/{id}/ruta-activa")
+	public ResponseEntity<?> publicarRutaActiva(@PathVariable Long id, @RequestBody Map<String, String> body) {
+		exigirConductorAsignado(id);
+		String polyline = body.get("polylinePoints");
+		if (polyline == null || polyline.isBlank()) {
+			polyline = body.get("polyline");
+		}
+		if (polyline == null || polyline.isBlank()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Falta polylinePoints");
+		}
+		viajeService.guardarPolylineActiva(id, polyline);
+		Map<String, Object> payload = new HashMap<>();
+		payload.put("viajeId", id);
+		payload.put("polylinePoints", polyline);
+		simpMessagingTemplate.convertAndSend((String) ("/topic/viajes/" + id), (Object) payload);
+		simpMessagingTemplate.convertAndSend((String) ("/topic/viajes/" + id + "/ubicacion"), (Object) payload);
+		return ResponseEntity.ok(payload);
+	}
+
 	@PatchMapping("/{id}/aceptar")
 	public ResponseEntity<?> aceptar(@PathVariable Long id, @RequestBody(required = false) Map<String, Object> body) {
 		currentUserService.requireRol("CONDUCTOR", "ADMIN");

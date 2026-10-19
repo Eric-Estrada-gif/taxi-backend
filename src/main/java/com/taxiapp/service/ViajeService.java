@@ -8,6 +8,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -33,6 +34,7 @@ public class ViajeService {
 	private final ConductorService conductorService;
 	private final UsuarioService usuarioService;
 	private final VehiculoService vehiculoService;
+	private final ConcurrentHashMap<Long, String> polylineActivaPorViaje = new ConcurrentHashMap<>();
 
 	@Autowired
 	public ViajeService(ViajeRepository viajeRepository, JdbcTemplate jdbcTemplate,
@@ -240,7 +242,23 @@ public class ViajeService {
 		} catch (Exception ignored) {
 		}
 
+		String polyline = polylineActivaPorViaje.get(id);
+		if (polyline != null && !polyline.isBlank()) {
+			detalle.put("polylinePoints", polyline);
+		}
+
 		return detalle;
+	}
+
+	public void guardarPolylineActiva(Long viajeId, String polylinePoints) {
+		if (viajeId == null || polylinePoints == null || polylinePoints.isBlank()) {
+			return;
+		}
+		polylineActivaPorViaje.put(viajeId, polylinePoints);
+	}
+
+	public String obtenerPolylineActiva(Long viajeId) {
+		return polylineActivaPorViaje.get(viajeId);
 	}
 
 	public Long obtenerRiderId(Long viajeId) {
