@@ -1,18 +1,26 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <body>
-<aside class="sidebar" th:fragment="menu(activa)">
-  <p class="brand">RapiTrip</p>
-  <p class="brand-sub">Portal admin</p>
-  <nav class="nav">
-    <a th:href="@{/admin}" th:classappend="${activa == ''} ? 'activo'">Inicio</a>
-    <a th:each="t : ${tablas}" th:href="@{|/admin/${t.clave}|}"
-       th:text="${t.titulo}"
-       th:classappend="${activa == t.clave} ? 'activo'"></a>
-  </nav>
-  <form th:action="@{/admin/logout}" method="post" style="margin-top:24px">
-    <button class="logout" type="submit">Cerrar sesión</button>
-  </form>
-</aside>
+<th:block th:fragment="menu(activa)">
+  <input type="checkbox" id="nav-abierto" class="nav-abierto" autocomplete="off">
+  <header class="topbar">
+    <label for="nav-abierto" class="nav-boton" aria-label="Abrir menú">☰</label>
+    <span class="brand-mini">RapiTrip</span>
+  </header>
+  <label for="nav-abierto" class="nav-fondo" aria-hidden="true"></label>
+  <aside class="sidebar">
+    <p class="brand">RapiTrip</p>
+    <p class="brand-sub">Portal admin</p>
+    <nav class="nav">
+      <a th:href="@{/admin}" th:classappend="${activa == ''} ? 'activo'">Inicio</a>
+      <a th:each="t : ${tablas}" th:href="@{|/admin/${t.clave}|}"
+         th:text="${t.titulo}"
+         th:classappend="${activa == t.clave} ? 'activo'"></a>
+    </nav>
+    <form th:action="@{/admin/logout}" method="post" class="logout-form">
+      <button class="logout" type="submit">Cerrar sesión</button>
+    </form>
+  </aside>
+</th:block>
 </body>
 </html>
