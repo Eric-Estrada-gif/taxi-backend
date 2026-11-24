@@ -57,7 +57,7 @@ public class GoogleDirectionsService {
 			double destinoLng) {
 		try {
 			String url = String.format(
-					"https://maps.googleapis.com/maps/api/directions/json?origin=%s,%s&destination=%s,%s&mode=driving&key=%s",
+					"https://maps.googleapis.com/maps/api/directions/json?origin=%s,%s&destination=%s,%s&mode=driving&language=es&key=%s",
 					originLat, originLng, destinoLat, destinoLng, apiKey);
 
 			String response = restClient.get()
@@ -82,8 +82,28 @@ public class GoogleDirectionsService {
 			double distanciaMetros = leg.path("distance").path("value").asDouble();
 			double duracionSegundos = leg.path("duration").path("value").asDouble();
 
+			java.util.List<com.taxiapp.dto.PasoRutaDTO> pasos = new java.util.ArrayList<>();
+			JsonNode steps = leg.path("steps");
+			if (steps.isArray()) {
+				for (JsonNode step : steps) {
+					String html = step.path("html_instructions").asText("");
+					String instruction = html.replaceAll("<[^>]+>", " ")
+							.replace("&nbsp;", " ")
+							.replaceAll("\\s+", " ")
+							.trim();
+					JsonNode end = step.path("end_location");
+					pasos.add(new com.taxiapp.dto.PasoRutaDTO(
+							instruction,
+							step.path("maneuver").asText(""),
+							step.path("distance").path("value").asInt(0),
+							step.path("duration").path("value").asInt(0),
+							end.path("lat").isMissingNode() ? null : end.path("lat").asDouble(),
+							end.path("lng").isMissingNode() ? null : end.path("lng").asDouble()));
+				}
+			}
+
 			return new RutaRespuestaDTO(polylinePoints, distanciaMetros / 1000.0, duracionSegundos / 60.0, 0.0,
-					destinoLat, destinoLng);
+					destinoLat, destinoLng, pasos);
 		} catch (MapsApiException e) {
 			throw e;
 		} catch (Exception e) {

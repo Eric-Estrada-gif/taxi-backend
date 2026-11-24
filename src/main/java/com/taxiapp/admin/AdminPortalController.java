@@ -112,7 +112,11 @@ public class AdminPortalController {
 			crud.eliminar(tabla, id);
 			ra.addFlashAttribute("ok", "Registro eliminado");
 		} catch (Exception e) {
-			ra.addFlashAttribute("error", "No se pudo eliminar (puede tener datos relacionados): " + e.getMessage());
+			Throwable causa = e;
+			while (causa.getCause() != null && causa.getCause() != causa) {
+				causa = causa.getCause();
+			}
+			ra.addFlashAttribute("error", "No se pudo eliminar: " + causa.getMessage());
 		}
 		return "redirect:/admin/" + clave;
 	}

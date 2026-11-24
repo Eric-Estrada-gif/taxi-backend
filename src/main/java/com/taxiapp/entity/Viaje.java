@@ -101,6 +101,30 @@ public class Viaje {
 	
 	@Column(name = "fecha_fin")
 	private LocalDateTime fechaFin;
+
+	@Column(name = "origen_alerta", nullable = false)
+	private Boolean origenAlerta = false;
+
+	@Column(name = "destino_alerta", nullable = false)
+	private Boolean destinoAlerta = false;
+
+	@Column(name = "recojo_lat", precision = 10, scale = 7)
+	private BigDecimal recojoLat;
+
+	@Column(name = "recojo_lng", precision = 10, scale = 7)
+	private BigDecimal recojoLng;
+
+	@Column(name = "bajada_lat", precision = 10, scale = 7)
+	private BigDecimal bajadaLat;
+
+	@Column(name = "bajada_lng", precision = 10, scale = 7)
+	private BigDecimal bajadaLng;
+
+	@Column(name = "condicion_estado", nullable = false, length = 20)
+	private String condicionEstado = "NINGUNA";
+
+	@Column(name = "condicion_conductor_id")
+	private Long condicionConductorId;
 	
 	@PrePersist
 	protected void onCreate() {

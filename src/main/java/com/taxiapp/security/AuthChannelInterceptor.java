@@ -52,11 +52,11 @@ public class AuthChannelInterceptor implements ChannelInterceptor {
 								Long.valueOf(claims.getSubject()),
 								claims.get("email", String.class),
 								claims.get("rol", String.class));
-						accessor.setUser(principal);
+						recordarUsuario(accessor, principal);
 						return message;
 					} catch (JwtException | IllegalArgumentException ex) {
 						if (betaOpen) {
-							accessor.setUser(new AuthPrincipal(1L, "beta@taxiapp.com", "ADMIN"));
+							recordarUsuario(accessor, new AuthPrincipal(1L, "beta@taxiapp.com", "ADMIN"));
 							return message;
 						}
 						throw new MessagingException("Token JWT invalido o expirado");
@@ -65,13 +65,27 @@ public class AuthChannelInterceptor implements ChannelInterceptor {
 			}
 
 			if (betaOpen) {
-				accessor.setUser(new AuthPrincipal(1L, "beta@taxiapp.com", "ADMIN"));
+				recordarUsuario(accessor, new AuthPrincipal(1L, "beta@taxiapp.com", "ADMIN"));
 				return message;
 			}
 
 			throw new MessagingException("Falta el header Authorization con formato Bearer <token>");
 		}
 
+		if (accessor.getUser() == null && accessor.getSessionAttributes() != null) {
+			Object guardado = accessor.getSessionAttributes().get("AUTH_USER");
+			if (guardado instanceof AuthPrincipal principal) {
+				accessor.setUser(principal);
+			}
+		}
+
 		return message;
+	}
+
+	private void recordarUsuario(StompHeaderAccessor accessor, AuthPrincipal principal) {
+		accessor.setUser(principal);
+		if (accessor.getSessionAttributes() != null) {
+			accessor.getSessionAttributes().put("AUTH_USER", principal);
+		}
 	}
 }

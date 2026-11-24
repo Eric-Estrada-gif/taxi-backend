@@ -102,7 +102,64 @@ public record AdminTabla(
 				new AdminTabla("dispositivo_push", "Dispositivos push", "dispositivo_push", "usuario_id", false, List.of(
 						col("usuario_id", "ID usuario", "number", true, true, true),
 						col("token", "Token", "textarea", false, true, true),
-						col("actualizado", "Actualizado", "datetime", false, true, true))));
+						col("actualizado", "Actualizado", "datetime", false, true, true))),
+				new AdminTabla("padron_dni", "Padron DNI", "padron_dni", "dni", false, List.of(
+						col("dni", "DNI", "text", true, true, true),
+						col("nombres", "Nombres", "text", false, true, true),
+						col("fecha_caducidad", "Caducidad", "date", false, true, true),
+						col("estado", "Estado", "select:VIGENTE,POR_RENOVAR,VENCIDO", false, true, true))),
+				new AdminTabla("padron_licencia", "Padron licencia", "padron_licencia", "dni", false, List.of(
+						col("dni", "DNI", "text", true, true, true),
+						col("nombres", "Nombres", "text", false, true, true),
+						col("numero_licencia", "N° licencia", "text", false, true, true),
+						col("categoria", "Categoría", "text", false, true, true),
+						col("fecha_vencimiento", "Vence", "date", false, true, true),
+						col("estado", "Estado", "select:VIGENTE,POR_RENOVAR,VENCIDA", false, true, true))),
+				new AdminTabla("padron_soat", "Padron SOAT", "padron_soat", "placa", false, List.of(
+						col("placa", "Placa", "text", true, true, true),
+						col("dni_titular", "DNI titular", "text", false, true, true),
+						col("compania", "Compañía", "text", false, true, true),
+						col("fecha_inicio", "Inicio", "date", false, true, true),
+						col("fecha_fin", "Fin", "date", false, true, true),
+						col("estado", "Estado", "select:VIGENTE,POR_RENOVAR,VENCIDO,NO_REGISTRA", false, true, true),
+						col("marca", "Marca", "text", false, true, true),
+						col("modelo", "Modelo", "text", false, true, true),
+						col("color", "Color", "text", false, true, true),
+						col("clase", "Clase", "select:A-I,A-II", false, true, true))),
+				new AdminTabla("verificacion_conductor", "Verificaciones", "verificacion_conductor", "id", true, List.of(
+						col("id", "ID", "id", true, false, true),
+						col("conductor_id", "ID conductor", "number", false, true, true),
+						col("dni", "DNI", "text", false, true, true),
+						col("placa", "Placa", "text", false, true, true),
+						col("veredicto", "Veredicto", "select:APROBADO,OBSERVADO,RECHAZADO", false, true, true),
+						col("mensaje", "Mensaje", "textarea", false, true, true),
+						col("detalle_json", "Detalle", "textarea", false, true, false),
+						col("fecha", "Fecha", "datetime", false, false, true))),
+				new AdminTabla("test_pregunta", "Preguntas test", "test_pregunta", "id", true, List.of(
+						col("id", "ID", "id", true, false, true),
+						col("rol", "Rol", "select:RIDER,CONDUCTOR", false, true, true),
+						col("enunciado", "Pregunta", "textarea", false, true, true),
+						col("opcion_a", "A", "text", false, true, false),
+						col("opcion_b", "B", "text", false, true, false),
+						col("opcion_c", "C", "text", false, true, false),
+						col("opcion_d", "D", "text", false, true, false),
+						col("correcta", "Correcta", "text", false, true, true))),
+				new AdminTabla("test_intento", "Intentos test", "test_intento", "id", true, List.of(
+						col("id", "ID", "id", true, false, true),
+						col("email", "Email", "text", false, true, true),
+						col("telefono", "Teléfono", "text", false, true, true),
+						col("rol", "Rol", "select:RIDER,CONDUCTOR", false, true, true),
+						col("nro_intento", "Intento", "number", false, true, true),
+						col("nota", "Nota", "number", false, true, true),
+						col("porcentaje", "Porcentaje", "decimal", false, true, true),
+						col("aprobado", "Aprobado", "bool", false, true, true),
+						col("fecha", "Fecha", "datetime", false, false, true))),
+				new AdminTabla("test_bloqueo", "Bloqueos test", "test_bloqueo", "id", true, List.of(
+						col("id", "ID", "id", true, false, true),
+						col("email", "Email", "text", false, true, true),
+						col("telefono", "Teléfono", "text", false, true, true),
+						col("bloqueado_hasta", "Hasta", "datetime", false, true, true),
+						col("motivo", "Motivo", "text", false, true, true))));
 	}
 
 	public static AdminTabla porClave(String clave) {

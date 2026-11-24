@@ -1,5 +1,8 @@
 package com.taxiapp.dto;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,4 +20,5 @@ public class RutaRespuestaDTO {
 	private double precioEstimado;
 	private Double destinoLat;
 	private Double destinoLng;
+	private List<PasoRutaDTO> pasos = new ArrayList<>();
 }

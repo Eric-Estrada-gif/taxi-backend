@@ -240,6 +240,28 @@ public class ViajeController {
 				"conductorId", conductor.getId()));
 	}
 
+	@PostMapping("/{id}/condicion")
+	public ResponseEntity<?> proponerCondicion(@PathVariable Long id) {
+		currentUserService.requireRol("CONDUCTOR", "ADMIN");
+		Conductor conductor = conductorDelUsuarioActual();
+		Map<String, Object> propuesta = viajeService.proponerCondicion(id, conductor.getId());
+		simpMessagingTemplate.convertAndSend((String) ("/topic/viajes/" + id + "/estado"), (Object) propuesta);
+		simpMessagingTemplate.convertAndSend((String) ("/topic/viajes/" + id), (Object) propuesta);
+		return ResponseEntity.ok(propuesta);
+	}
+
+	@PatchMapping("/{id}/condicion")
+	public ResponseEntity<?> responderCondicion(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+		if (!currentUserService.isAdmin() && !viajeService.esRider(id, currentUserService.userId())) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el pasajero puede responder la condición");
+		}
+		boolean aceptar = Boolean.TRUE.equals(body.get("aceptar"));
+		Map<String, Object> respuesta = viajeService.responderCondicion(id, aceptar);
+		simpMessagingTemplate.convertAndSend((String) ("/topic/viajes/" + id + "/estado"), (Object) respuesta);
+		simpMessagingTemplate.convertAndSend((String) ("/topic/viajes/" + id), (Object) respuesta);
+		return ResponseEntity.ok(respuesta);
+	}
+
 	private Conductor conductorDelUsuarioActual() {
 		Conductor conductor = conductorService.buscarPorUsuario(currentUserService.userId());
 		if (conductor == null) {

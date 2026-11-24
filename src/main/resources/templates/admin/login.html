@@ -8,8 +8,13 @@
 </head>
 <body class="login-page">
   <div class="login-box">
-    <p class="brand">RapiTrip</p>
-    <p class="muted">Portal administrativo</p>
+    <div class="marca-fila">
+      <div class="marca-marca">R</div>
+      <div>
+        <p class="brand">RapiTrip</p>
+        <p class="brand-sub">Administración</p>
+      </div>
+    </div>
     <div th:if="${param.error}" class="alerta error">Usuario o contraseña incorrectos</div>
     <div th:if="${param.salida}" class="alerta ok">Sesión cerrada</div>
     <form th:action="@{/admin/login}" method="post">

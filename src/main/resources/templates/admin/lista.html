@@ -12,8 +12,9 @@
   <main class="contenido">
     <div class="top">
       <div>
+        <p class="kicker">Registros</p>
         <h1 th:text="${tabla.titulo}">Tabla</h1>
-        <p class="muted" th:text="'Tabla MySQL: ' + ${tabla.sqlNombre}"></p>
+        <p class="muted" th:text="${tabla.sqlNombre}"></p>
       </div>
       <a class="btn" th:href="@{|/admin/${tabla.clave}/nuevo|}">Nuevo</a>
     </div>

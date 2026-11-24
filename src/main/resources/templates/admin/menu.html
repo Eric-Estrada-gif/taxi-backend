@@ -9,13 +9,30 @@
   </header>
   <label for="nav-abierto" class="nav-fondo" aria-hidden="true"></label>
   <aside class="sidebar">
-    <p class="brand">RapiTrip</p>
-    <p class="brand-sub">Portal admin</p>
+    <div class="marca-fila">
+      <div class="marca-marca">R</div>
+      <div>
+        <p class="brand">RapiTrip</p>
+        <p class="brand-sub">Administración</p>
+      </div>
+    </div>
     <nav class="nav">
       <a th:href="@{/admin}" th:classappend="${activa == ''} ? 'activo'">Inicio</a>
-      <a th:each="t : ${tablas}" th:href="@{|/admin/${t.clave}|}"
-         th:text="${t.titulo}"
-         th:classappend="${activa == t.clave} ? 'activo'"></a>
+      <p class="nav-grupo">Operación</p>
+      <a th:each="t : ${tablas}" th:if="${#lists.contains({'usuario','conductor','vehiculo','tarifa','viaje','ubicacion'}, t.clave)}"
+         th:href="@{|/admin/${t.clave}|}" th:text="${t.titulo}" th:classappend="${activa == t.clave} ? 'activo'"></a>
+      <p class="nav-grupo">Pagos</p>
+      <a th:each="t : ${tablas}" th:if="${#lists.contains({'pago','metodo_pago'}, t.clave)}"
+         th:href="@{|/admin/${t.clave}|}" th:text="${t.titulo}" th:classappend="${activa == t.clave} ? 'activo'"></a>
+      <p class="nav-grupo">Actividad</p>
+      <a th:each="t : ${tablas}" th:if="${#lists.contains({'calificacion','mensajes_viaje','dispositivo_push'}, t.clave)}"
+         th:href="@{|/admin/${t.clave}|}" th:text="${t.titulo}" th:classappend="${activa == t.clave} ? 'activo'"></a>
+      <p class="nav-grupo">Registro</p>
+      <a th:each="t : ${tablas}" th:if="${#lists.contains({'padron_dni','padron_licencia','padron_soat','verificacion_conductor','test_pregunta','test_intento','test_bloqueo'}, t.clave)}"
+         th:href="@{|/admin/${t.clave}|}" th:text="${t.titulo}" th:classappend="${activa == t.clave} ? 'activo'"></a>
+      <th:block th:each="t : ${tablas}" th:if="${!#lists.contains({'usuario','conductor','vehiculo','tarifa','viaje','ubicacion','pago','metodo_pago','calificacion','mensajes_viaje','dispositivo_push','padron_dni','padron_licencia','padron_soat','verificacion_conductor','test_pregunta','test_intento','test_bloqueo'}, t.clave)}">
+        <a th:href="@{|/admin/${t.clave}|}" th:text="${t.titulo}" th:classappend="${activa == t.clave} ? 'activo'"></a>
+      </th:block>
     </nav>
     <form th:action="@{/admin/logout}" method="post" class="logout-form">
       <button class="logout" type="submit">Cerrar sesión</button>

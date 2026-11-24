@@ -3,8 +3,11 @@ package com.taxiapp.service;
 import java.math.BigDecimal;
 import java.sql.CallableStatement;
 import java.sql.Types;
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,5 +55,20 @@ public class PagoService {
 	
 	public void actualizarEstado(Long id, String estado) {
 		jdbcTemplate.update("CALL sp_pago_actualizar_estado(?, ?)", id, estado);
+	}
+
+	public String estadoPorViaje(Long viajeId) {
+		try {
+			return jdbcTemplate.queryForObject("SELECT estado FROM pago WHERE viaje_id = ?", String.class, viajeId);
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
+	}
+
+	public void dejarEstado(Long viajeId, String metodo, BigDecimal monto, String estado) {
+		List<Map<String, Object>> filas = jdbcTemplate.queryForList(
+				"SELECT id FROM pago WHERE viaje_id = ?", viajeId);
+		Long id = filas.isEmpty() ? registrarPago(viajeId, metodo, monto) : ((Number) filas.get(0).get("id")).longValue();
+		actualizarEstado(id, estado);
 	}
 }

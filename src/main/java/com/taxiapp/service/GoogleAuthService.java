@@ -32,16 +32,18 @@ public class GoogleAuthService {
 	private final JwtService jwtService;
 	private final DemoAccountService demoAccountService;
 	private final CuentaPersistenteService cuentaPersistenteService;
+	private final TestConductaService testConductaService;
 
 	@Autowired
 	public GoogleAuthService(UsuarioRepository usuarioRepository, JdbcTemplate jdbcTemplate,
 			JwtService jwtService, DemoAccountService demoAccountService,
-			CuentaPersistenteService cuentaPersistenteService) {
+			CuentaPersistenteService cuentaPersistenteService, TestConductaService testConductaService) {
 		this.usuarioRepository = usuarioRepository;
 		this.jdbcTemplate = jdbcTemplate;
 		this.jwtService = jwtService;
 		this.cuentaPersistenteService = cuentaPersistenteService;
 		this.demoAccountService = demoAccountService;
+		this.testConductaService = testConductaService;
 	}
 	
      //Excepcion especifica para cuando la cuenta existe con un rol distinto
@@ -88,6 +90,7 @@ public class GoogleAuthService {
             registrarUsuarioGoogle(nombre, apellido, email, googleId, fotoPerfil, request.getRol());
             usuario = usuarioRepository.buscarPorGoogleId(googleId);
             cuentaNueva = true;
+            testConductaService.olvidarIntentos(email, usuario == null ? null : usuario.getTelefono());
         }
  
         String token = jwtService.generarToken(usuario.getId(), usuario.getEmail(), usuario.getRol().name());

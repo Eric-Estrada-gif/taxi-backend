@@ -1,5 +1,7 @@
 package com.taxiapp.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.CallableStatement;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -34,20 +36,22 @@ public class ViajeService {
 	private final ConductorService conductorService;
 	private final UsuarioService usuarioService;
 	private final VehiculoService vehiculoService;
+	private final ZonaAlertaService zonaAlertaService;
 	private final ConcurrentHashMap<Long, String> polylineActivaPorViaje = new ConcurrentHashMap<>();
 
 	@Autowired
 	public ViajeService(ViajeRepository viajeRepository, JdbcTemplate jdbcTemplate,
 			ConductorService conductorService, UsuarioService usuarioService,
-			VehiculoService vehiculoService) {
+			VehiculoService vehiculoService, ZonaAlertaService zonaAlertaService) {
 		this.viajeRepository = viajeRepository;
 		this.jdbcTemplate = jdbcTemplate;
 		this.conductorService = conductorService;
 		this.usuarioService = usuarioService;
 		this.vehiculoService = vehiculoService;
+		this.zonaAlertaService = zonaAlertaService;
 	}
 
-	public Long solicitarViaje(ViajeSolicitudDTO dto) {
+	private Long insertarViaje(ViajeSolicitudDTO dto) {
 		String sql = "{call sp_viaje_insertar(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}";
 
 		return jdbcTemplate.execute((java.sql.Connection con) -> con.prepareCall(sql),
@@ -64,9 +68,24 @@ public class ViajeService {
 					cs.registerOutParameter(10, Types.BIGINT);
 
 					cs.execute();
-
 					return cs.getLong(10);
 				});
+	}
+
+	public Long solicitarViaje(ViajeSolicitudDTO dto) {
+		Long id = insertarViaje(dto);
+		marcarAlertas(id, dto.getOrigenLat(), dto.getOrigenLng(), dto.getDestinoLat(), dto.getDestinoLng());
+		return id;
+	}
+
+	private void marcarAlertas(long id, java.math.BigDecimal origenLat, java.math.BigDecimal origenLng,
+			java.math.BigDecimal destinoLat, java.math.BigDecimal destinoLng) {
+		boolean origen = origenLat != null && origenLng != null
+				&& zonaAlertaService.enZona(origenLat.doubleValue(), origenLng.doubleValue());
+		boolean destino = destinoLat != null && destinoLng != null
+				&& zonaAlertaService.enZona(destinoLat.doubleValue(), destinoLng.doubleValue());
+		jdbcTemplate.update("UPDATE viaje SET origen_alerta = ?, destino_alerta = ? WHERE id = ?",
+				origen, destino, id);
 	}
 
 	@Transactional
@@ -86,7 +105,15 @@ public class ViajeService {
 
 	@Transactional
 	public List<Viaje> listarSolicitados() {
-		String sql = "CALL sp_viaje_listar_solicitados()";
+		String sql = """
+				SELECT id, origen_direccion, origen_lat, origen_lng,
+				       destino_direccion, destino_lat, destino_lng,
+				       estado, monto_total, fecha_solicitud,
+				       origen_alerta, destino_alerta, condicion_estado
+				FROM viaje
+				WHERE estado = 'SOLICITADO'
+				ORDER BY fecha_solicitud ASC
+				""";
 
 		List<Viaje> lista = jdbcTemplate.query(sql, (rs, rowNum) -> {
 			Viaje viaje = new Viaje();
@@ -104,6 +131,9 @@ public class ViajeService {
 			}
 
 			viaje.setMontoTotal(rs.getBigDecimal("monto_total"));
+			viaje.setOrigenAlerta(rs.getBoolean("origen_alerta"));
+			viaje.setDestinoAlerta(rs.getBoolean("destino_alerta"));
+			viaje.setCondicionEstado(rs.getString("condicion_estado"));
 
 			if (rs.getTimestamp("fecha_solicitud") != null) {
 				viaje.setFechaSolicitud(rs.getTimestamp("fecha_solicitud").toLocalDateTime());
@@ -166,6 +196,192 @@ public class ViajeService {
 			}
 		}
 		throw new ResponseStatusException(HttpStatus.CONFLICT, "No puedes rechazar este viaje en su estado actual");
+	}
+
+	public Map<String, Object> proponerCondicion(Long viajeId, Long conductorId) {
+		exigirExiste(viajeId);
+		if (!"SOLICITADO".equals(obtenerEstado(viajeId))) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "El viaje ya no está disponible");
+		}
+		Map<String, Object> fila = filaViaje(viajeId);
+		boolean origenAlerta = Boolean.TRUE.equals(fila.get("origenAlerta"));
+		boolean destinoAlerta = Boolean.TRUE.equals(fila.get("destinoAlerta"));
+		if (!origenAlerta && !destinoAlerta) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Este viaje no pasa por una zona de alerta");
+		}
+		double oLat = ((BigDecimal) fila.get("origenLat")).doubleValue();
+		double oLng = ((BigDecimal) fila.get("origenLng")).doubleValue();
+		double dLat = ((BigDecimal) fila.get("destinoLat")).doubleValue();
+		double dLng = ((BigDecimal) fila.get("destinoLng")).doubleValue();
+		double[] recojo = origenAlerta ? zonaAlertaService.puntoSeguro(oLat, oLng) : null;
+		double[] bajada = destinoAlerta ? zonaAlertaService.puntoSeguro(dLat, dLng) : null;
+		if ((origenAlerta && recojo == null) || (destinoAlerta && bajada == null)) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT,
+					"El punto está muy adentro de la zona. No hay un lugar seguro a menos de 300 m. Puedes rechazar el viaje y no cuenta en contra.");
+		}
+		BigDecimal montoNuevo = montoAjustado(oLat, oLng, dLat, dLng, recojo, bajada, (BigDecimal) fila.get("montoTotal"));
+		jdbcTemplate.update("""
+				UPDATE viaje
+				SET recojo_lat = ?, recojo_lng = ?, bajada_lat = ?, bajada_lng = ?,
+				    condicion_estado = 'PENDIENTE', condicion_conductor_id = ?
+				WHERE id = ? AND estado = 'SOLICITADO'
+				""",
+				recojo == null ? null : BigDecimal.valueOf(recojo[0]),
+				recojo == null ? null : BigDecimal.valueOf(recojo[1]),
+				bajada == null ? null : BigDecimal.valueOf(bajada[0]),
+				bajada == null ? null : BigDecimal.valueOf(bajada[1]),
+				conductorId,
+				viajeId);
+		Map<String, Object> respuesta = new HashMap<>();
+		respuesta.put("viajeId", viajeId);
+		respuesta.put("estado", "SOLICITADO");
+		respuesta.put("condicionEstado", "PENDIENTE");
+		respuesta.put("montoTotal", montoNuevo);
+		adjuntarZona(respuesta, viajeId);
+		respuesta.put("estado", "SOLICITADO");
+		respuesta.put("condicionEstado", "PENDIENTE");
+		respuesta.put("montoTotal", montoNuevo);
+		respuesta.put("mensaje", "Se le preguntó al pasajero si acepta el punto seguro");
+		return respuesta;
+	}
+
+	public Map<String, Object> responderCondicion(Long viajeId, boolean aceptar) {
+		exigirExiste(viajeId);
+		Map<String, Object> fila = filaViaje(viajeId);
+		if (!"SOLICITADO".equals(fila.get("estado")) || !"PENDIENTE".equals(fila.get("condicionEstado"))) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya no hay una condición pendiente");
+		}
+		Long conductorId = (Long) fila.get("condicionConductorId");
+		if (!aceptar) {
+			jdbcTemplate.update("""
+					UPDATE viaje
+					SET condicion_estado = 'RECHAZADA', condicion_conductor_id = NULL,
+					    recojo_lat = NULL, recojo_lng = NULL, bajada_lat = NULL, bajada_lng = NULL
+					WHERE id = ?
+					""", viajeId);
+			Map<String, Object> respuesta = new HashMap<>();
+			respuesta.put("viajeId", viajeId);
+			respuesta.put("estado", "SOLICITADO");
+			respuesta.put("condicionEstado", "RECHAZADA");
+			respuesta.put("mensaje", "El pasajero no aceptó el punto seguro");
+			return respuesta;
+		}
+		if (conductorId == null) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "No hay conductor para esta condición");
+		}
+		BigDecimal montoNuevo = montoAjustado(
+				((BigDecimal) fila.get("origenLat")).doubleValue(),
+				((BigDecimal) fila.get("origenLng")).doubleValue(),
+				((BigDecimal) fila.get("destinoLat")).doubleValue(),
+				((BigDecimal) fila.get("destinoLng")).doubleValue(),
+				punto(fila.get("recojoLat"), fila.get("recojoLng")),
+				punto(fila.get("bajadaLat"), fila.get("bajadaLng")),
+				(BigDecimal) fila.get("montoTotal"));
+		jdbcTemplate.update("""
+				UPDATE viaje
+				SET monto_total = ?, condicion_estado = 'ACEPTADA'
+				WHERE id = ? AND estado = 'SOLICITADO'
+				""", montoNuevo, viajeId);
+		aceptar(viajeId, conductorId);
+		Map<String, Object> respuesta = armarPayloadEstado(viajeId, "ACEPTADO", conductorId);
+		respuesta.put("condicionEstado", "ACEPTADA");
+		respuesta.put("montoTotal", montoNuevo);
+		return respuesta;
+	}
+
+	private Map<String, Object> filaViaje(Long viajeId) {
+		List<Map<String, Object>> filas = jdbcTemplate.query("""
+				SELECT estado, origen_lat, origen_lng, destino_lat, destino_lng, monto_total,
+				       origen_alerta, destino_alerta, condicion_estado, condicion_conductor_id,
+				       recojo_lat, recojo_lng, bajada_lat, bajada_lng
+				FROM viaje WHERE id = ?
+				""", (rs, rowNum) -> {
+			Map<String, Object> fila = new HashMap<>();
+			fila.put("estado", rs.getString("estado"));
+			fila.put("origenLat", rs.getBigDecimal("origen_lat"));
+			fila.put("origenLng", rs.getBigDecimal("origen_lng"));
+			fila.put("destinoLat", rs.getBigDecimal("destino_lat"));
+			fila.put("destinoLng", rs.getBigDecimal("destino_lng"));
+			fila.put("montoTotal", rs.getBigDecimal("monto_total"));
+			fila.put("origenAlerta", rs.getBoolean("origen_alerta"));
+			fila.put("destinoAlerta", rs.getBoolean("destino_alerta"));
+			fila.put("condicionEstado", rs.getString("condicion_estado"));
+			long conductor = rs.getLong("condicion_conductor_id");
+			fila.put("condicionConductorId", rs.wasNull() ? null : conductor);
+			fila.put("recojoLat", rs.getBigDecimal("recojo_lat"));
+			fila.put("recojoLng", rs.getBigDecimal("recojo_lng"));
+			fila.put("bajadaLat", rs.getBigDecimal("bajada_lat"));
+			fila.put("bajadaLng", rs.getBigDecimal("bajada_lng"));
+			return fila;
+		}, viajeId);
+		if (filas.isEmpty()) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Viaje no encontrado");
+		}
+		return filas.get(0);
+	}
+
+	private static double[] punto(Object lat, Object lng) {
+		if (!(lat instanceof BigDecimal latitud) || !(lng instanceof BigDecimal longitud)) {
+			return null;
+		}
+		return new double[] { latitud.doubleValue(), longitud.doubleValue() };
+	}
+
+	private static BigDecimal montoAjustado(double oLat, double oLng, double dLat, double dLng,
+			double[] recojo, double[] bajada, BigDecimal monto) {
+		if (monto == null) {
+			return null;
+		}
+		double desdeLat = recojo != null ? recojo[0] : oLat;
+		double desdeLng = recojo != null ? recojo[1] : oLng;
+		double hastaLat = bajada != null ? bajada[0] : dLat;
+		double hastaLng = bajada != null ? bajada[1] : dLng;
+		double antes = ZonaAlertaService.distanciaMetros(oLat, oLng, dLat, dLng);
+		double despues = ZonaAlertaService.distanciaMetros(desdeLat, desdeLng, hastaLat, hastaLng);
+		if (antes < 30) {
+			return monto;
+		}
+		double nuevo = monto.doubleValue() * (despues / antes);
+		if (nuevo < 3) {
+			nuevo = 3;
+		}
+		return BigDecimal.valueOf(nuevo).setScale(2, RoundingMode.HALF_UP);
+	}
+
+	public void adjuntarZona(Map<String, Object> destino, Long viajeId) {
+		try {
+			jdbcTemplate.query("""
+					SELECT origen_lat, origen_lng, destino_lat, destino_lng,
+					       origen_alerta, destino_alerta, condicion_estado,
+					       recojo_lat, recojo_lng, bajada_lat, bajada_lng, monto_total
+					FROM viaje WHERE id = ?
+					""", (rs, rowNum) -> {
+				destino.put("origenAlerta", rs.getBoolean("origen_alerta"));
+				destino.put("destinoAlerta", rs.getBoolean("destino_alerta"));
+				destino.put("condicionEstado", rs.getString("condicion_estado"));
+				BigDecimal recojoLat = rs.getBigDecimal("recojo_lat");
+				BigDecimal recojoLng = rs.getBigDecimal("recojo_lng");
+				BigDecimal bajadaLat = rs.getBigDecimal("bajada_lat");
+				BigDecimal bajadaLng = rs.getBigDecimal("bajada_lng");
+				destino.put("recojoLat", recojoLat);
+				destino.put("recojoLng", recojoLng);
+				destino.put("bajadaLat", bajadaLat);
+				destino.put("bajadaLng", bajadaLng);
+				destino.put("montoTotal", rs.getBigDecimal("monto_total"));
+				if (recojoLat != null && recojoLng != null) {
+					destino.put("metrosRecojo", (int) Math.round(ZonaAlertaService.distanciaMetros(
+							rs.getDouble("origen_lat"), rs.getDouble("origen_lng"),
+							recojoLat.doubleValue(), recojoLng.doubleValue())));
+				}
+				if (bajadaLat != null && bajadaLng != null) {
+					destino.put("metrosBajada", (int) Math.round(ZonaAlertaService.distanciaMetros(
+							bajadaLat.doubleValue(), bajadaLng.doubleValue(),
+							rs.getDouble("destino_lat"), rs.getDouble("destino_lng"))));
+				}
+				return null;
+			}, viajeId);
+		} catch (Exception ignored) {
+		}
 	}
 
 	public Map<String, Object> obtenerDetalleParaCliente(Long id) {
@@ -246,6 +462,7 @@ public class ViajeService {
 		if (polyline != null && !polyline.isBlank()) {
 			detalle.put("polylinePoints", polyline);
 		}
+		adjuntarZona(detalle, id);
 
 		return detalle;
 	}
@@ -272,6 +489,15 @@ public class ViajeService {
 	public Long obtenerConductorId(Long viajeId) {
 		try {
 			return jdbcTemplate.queryForObject("SELECT conductor_id FROM viaje WHERE id = ?", Long.class, viajeId);
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
+	}
+
+	public java.math.BigDecimal obtenerMonto(Long viajeId) {
+		try {
+			return jdbcTemplate.queryForObject("SELECT monto_total FROM viaje WHERE id = ?", java.math.BigDecimal.class,
+					viajeId);
 		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
@@ -314,6 +540,7 @@ public class ViajeService {
 		payload.put("viajeId", viajeId);
 		payload.put("estado", estado);
 		payload.put("conductorId", conductorId);
+		adjuntarZona(payload, viajeId);
 
 		if (conductorId == null) {
 			return payload;

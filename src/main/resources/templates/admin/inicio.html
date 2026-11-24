@@ -12,18 +12,44 @@
   <main class="contenido">
     <div class="top">
       <div>
-        <h1>Mantenimiento de tablas</h1>
-        <p class="muted">CRUD de la base MySQL. Los cambios llegan a la app móvil.</p>
+        <p class="kicker">Panel</p>
+        <h1>Administración</h1>
+        <p class="muted">Los registros de MySQL que usa la app.</p>
       </div>
     </div>
     <div th:if="${ok}" class="alerta ok" th:text="${ok}"></div>
     <div th:if="${error}" class="alerta error" th:text="${error}"></div>
-    <div class="cards">
-      <a class="card" th:each="t : ${tablas}" th:href="@{|/admin/${t.clave}|}">
-        <span th:text="${t.titulo}">Tabla</span>
-        <strong th:text="${conteos.get(t.clave) >= 0 ? conteos.get(t.clave) : '—'}">0</strong>
-      </a>
-    </div>
+    <section class="bloque">
+      <h2 class="seccion-titulo">Operación</h2>
+      <div class="cards">
+        <a class="card" th:each="t : ${tablas}" th:if="${#lists.contains({'usuario','conductor','vehiculo','tarifa','viaje','ubicacion'}, t.clave)}" th:href="@{|/admin/${t.clave}|}">
+          <strong th:text="${conteos.get(t.clave) >= 0 ? conteos.get(t.clave) : '—'}">0</strong>
+          <span th:text="${t.titulo}">Tabla</span>
+        </a>
+      </div>
+    </section>
+    <section class="bloque">
+      <h2 class="seccion-titulo">Pagos y actividad</h2>
+      <div class="cards">
+        <a class="card" th:each="t : ${tablas}" th:if="${#lists.contains({'pago','metodo_pago','calificacion','mensajes_viaje','dispositivo_push'}, t.clave)}" th:href="@{|/admin/${t.clave}|}">
+          <strong th:text="${conteos.get(t.clave) >= 0 ? conteos.get(t.clave) : '—'}">0</strong>
+          <span th:text="${t.titulo}">Tabla</span>
+        </a>
+      </div>
+    </section>
+    <section class="bloque">
+      <h2 class="seccion-titulo">Registro y test</h2>
+      <div class="cards">
+        <a class="card" th:each="t : ${tablas}" th:if="${#lists.contains({'padron_dni','padron_licencia','padron_soat','verificacion_conductor','test_pregunta','test_intento','test_bloqueo'}, t.clave)}" th:href="@{|/admin/${t.clave}|}">
+          <strong th:text="${conteos.get(t.clave) >= 0 ? conteos.get(t.clave) : '—'}">0</strong>
+          <span th:text="${t.titulo}">Tabla</span>
+        </a>
+        <a class="card" th:each="t : ${tablas}" th:unless="${#lists.contains({'usuario','conductor','vehiculo','tarifa','viaje','ubicacion','pago','metodo_pago','calificacion','mensajes_viaje','dispositivo_push','padron_dni','padron_licencia','padron_soat','verificacion_conductor','test_pregunta','test_intento','test_bloqueo'}, t.clave)}" th:href="@{|/admin/${t.clave}|}">
+          <strong th:text="${conteos.get(t.clave) >= 0 ? conteos.get(t.clave) : '—'}">0</strong>
+          <span th:text="${t.titulo}">Tabla</span>
+        </a>
+      </div>
+    </section>
   </main>
 </div>
 </body>

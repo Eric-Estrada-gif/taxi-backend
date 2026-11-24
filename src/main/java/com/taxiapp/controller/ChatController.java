@@ -52,7 +52,7 @@ public class ChatController {
 
 		mensaje.setViajeId(viajeId);
 		mensaje.setFechaEnvio(LocalDateTime.now());
-		if (auth.tieneRol("CONDUCTOR")) {
+		if (viajeService.esConductorUsuario(viajeId, auth.getUserId())) {
 			mensaje.setRemitenteType("CONDUCTOR");
 		} else {
 			mensaje.setRemitenteType("RIDER");

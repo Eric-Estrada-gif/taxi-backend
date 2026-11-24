@@ -40,6 +40,7 @@ public class FirebaseAuthService {
 	private final DemoAccountService demoAccountService;
 	private final CuentaPersistenteService cuentaPersistenteService;
 	private final PasswordEncoder passwordEncoder;
+	private final TestConductaService testConductaService;
 	private final HttpClient httpClient = HttpClient.newHttpClient();
 	private final Map<String, PublicKey> clavesCache = new ConcurrentHashMap<>();
 	private volatile Instant clavesHasta = Instant.EPOCH;
@@ -49,12 +50,13 @@ public class FirebaseAuthService {
 
 	public FirebaseAuthService(JdbcTemplate jdbcTemplate, JwtService jwtService,
 			DemoAccountService demoAccountService, CuentaPersistenteService cuentaPersistenteService,
-			PasswordEncoder passwordEncoder) {
+			PasswordEncoder passwordEncoder, TestConductaService testConductaService) {
 		this.jdbcTemplate = jdbcTemplate;
 		this.jwtService = jwtService;
 		this.demoAccountService = demoAccountService;
 		this.cuentaPersistenteService = cuentaPersistenteService;
 		this.passwordEncoder = passwordEncoder;
+		this.testConductaService = testConductaService;
 	}
 
 	public static class RolConflictException extends RuntimeException {
@@ -124,6 +126,7 @@ public class FirebaseAuthService {
 			if (usuario == null) {
 				throw new IllegalStateException("No se pudo crear el usuario de celular");
 			}
+			testConductaService.olvidarIntentos(email, telefono);
 		}
 
 		String token = jwtService.generarToken(usuario.getId(), usuario.getEmail(), usuario.getRol().name());

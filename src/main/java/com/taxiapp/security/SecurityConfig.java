@@ -89,6 +89,7 @@ public class SecurityConfig {
 									"/api/auth/demo", "/api/auth/demo/**")
 							.permitAll()
 							.requestMatchers(HttpMethod.POST, "/api/usuarios").permitAll()
+							.requestMatchers("/api/registro", "/api/registro/**").permitAll()
 							.requestMatchers("/ws", "/ws/**").permitAll()
 							.requestMatchers("/", "/health", "/index.html", "/error").permitAll();
 					if (betaOpen) {

@@ -12,8 +12,8 @@
   <main class="contenido">
     <div class="top">
       <div>
+        <p class="kicker" th:text="${tabla.titulo}">Tabla</p>
         <h1 th:text="${nuevo} ? 'Nuevo registro' : 'Editar registro'"></h1>
-        <p class="muted" th:text="${tabla.titulo}"></p>
       </div>
       <a class="btn gris" th:href="@{|/admin/${tabla.clave}|}">Volver</a>
     </div>
